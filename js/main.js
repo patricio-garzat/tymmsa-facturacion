@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20260928c";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20260928c";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20260928c";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20260928c";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20260928c";
+import { CONFIG } from "./config.js?v=20260928d";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20260928d";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20260928d";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20260928d";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20260928d";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -16,20 +16,20 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20260928c";
-import { generateInsights } from "./insights.js?v=20260928c";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20260928c";
-import { renderMonthlyChart } from "./charts.js?v=20260928c";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20260928c";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20260928c";
-import * as ui from "./ui.js?v=20260928c";
+} from "./calculations.js?v=20260928d";
+import { generateInsights } from "./insights.js?v=20260928d";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20260928d";
+import { renderMonthlyChart } from "./charts.js?v=20260928d";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20260928d";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20260928d";
+import * as ui from "./ui.js?v=20260928d";
 
 const state = {
   dataset: null,
   filters: createFilterState(),
   compareYear: null,
   selectedClient: null,
-  facturacion: { search: "", sortKey: "fecha", sortDir: "desc", expandedId: null },
+  facturacion: { search: "", sortKey: "factura", sortDir: "asc", expandedId: null },
 };
 
 // Última tabla renderizada en Facturación, para que exportar/imprimir usen
@@ -251,6 +251,11 @@ function sortInvoices(invoices, key, dir) {
     let vb = b[key];
     if (va instanceof Date) va = va.getTime();
     if (vb instanceof Date) vb = vb.getTime();
+    if (key === "factura") {
+      const na = parseInt(String(va).replace(/\D/g, ""), 10);
+      const nb = parseInt(String(vb).replace(/\D/g, ""), 10);
+      if (!Number.isNaN(na) && !Number.isNaN(nb) && na !== nb) return (na - nb) * mult;
+    }
     if (typeof va === "string") return va.localeCompare(vb, "es") * mult;
     return ((va ?? 0) - (vb ?? 0)) * mult;
   });

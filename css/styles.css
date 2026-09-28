@@ -1236,7 +1236,10 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
 
   body { background: #fff; }
 
+  .app { padding-bottom: 0 !important; }
+
   .topbar,
+  .bottom-nav,
   .filterbar,
   .loading-screen,
   .footer-note,
