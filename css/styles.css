@@ -106,6 +106,7 @@ html, body {
 
 body {
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 a { color: inherit; }
@@ -978,20 +979,31 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
     cursor: pointer;
   }
   .filterbar {
-    padding: 10px 14px;
-    overflow-x: auto;
-    flex-wrap: nowrap;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px 12px;
+    padding: 12px 16px;
     top: var(--nav-h);
   }
+  .filter-field { width: 100%; min-width: 0; }
   .filter-field select,
-  .filter-field input[type="text"] { min-width: 108px; }
-  .view { padding: 18px 14px 40px; }
+  .filter-field input[type="text"] { width: 100%; min-width: 0; }
+  .filter-spacer { display: none; }
+  .filter-reset {
+    grid-column: 1 / -1;
+    justify-self: start;
+    padding: 2px 0;
+  }
+  .as-of {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+  .view { padding: 18px 14px 40px; max-width: 100%; overflow-x: hidden; }
   .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .kpi-card.primary { grid-column: span 2; }
   .kpi-value { font-size: 24px; }
   .kpi-card.primary .kpi-value { font-size: 28px; }
   .grid-3 { grid-template-columns: 1fr; }
-  table { min-width: 720px; }
   .detail-panel { grid-template-columns: repeat(2, 1fr); }
   .summary-bar {
     padding: 14px 16px;
@@ -1007,6 +1019,122 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
     flex-basis: 100%;
     padding-top: 10px;
     border-top: 1px solid var(--border);
+  }
+
+  /* ---- Tablas como tarjetas (sin scroll horizontal) ---- */
+  .table-wrap {
+    overflow-x: visible;
+    border: none;
+    background: transparent;
+    box-shadow: none;
+  }
+  table { min-width: 0; width: 100%; border-collapse: separate; border-spacing: 0; }
+
+  #table-facturas thead,
+  #table-clientes thead,
+  #table-top-clients thead {
+    position: absolute;
+    width: 1px; height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  #table-facturas tbody,
+  #table-clientes tbody,
+  #table-top-clients tbody { display: block; }
+
+  #table-facturas tbody tr,
+  #table-clientes tbody tr,
+  #table-top-clients tbody tr {
+    display: block;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-md);
+    margin-bottom: 10px;
+    padding: 4px 14px;
+  }
+
+  #table-facturas tbody tr:last-child,
+  #table-clientes tbody tr:last-child,
+  #table-top-clients tbody tr:last-child { margin-bottom: 0; }
+
+  #table-facturas tbody td,
+  #table-clientes tbody td,
+  #table-top-clients tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    white-space: normal;
+    text-align: right;
+  }
+
+  #table-facturas tbody td:last-child,
+  #table-clientes tbody td:last-child,
+  #table-top-clients tbody td:last-child { border-bottom: none; }
+
+  #table-facturas tbody td[data-label]::before,
+  #table-clientes tbody td[data-label]::before,
+  #table-top-clients tbody td[data-label]::before {
+    content: attr(data-label);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-align: left;
+    flex-shrink: 0;
+  }
+
+  /* Primeras dos columnas (identidad de la fila) se muestran como
+     encabezado de tarjeta en vez de par etiqueta/valor. */
+  #table-facturas tbody td:nth-child(1),
+  #table-clientes tbody td:nth-child(1),
+  #table-top-clients tbody td:nth-child(1) {
+    display: block;
+    text-align: left;
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+    padding-bottom: 2px;
+    border-bottom: none;
+  }
+
+  #table-facturas tbody td:nth-child(2) {
+    display: block;
+    text-align: left;
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 500;
+    padding-top: 0;
+    padding-bottom: 10px;
+  }
+
+  /* Tarjeta de cliente: la barra de % ocupa su propia línea completa */
+  #table-clientes tbody td:nth-child(4) {
+    display: block;
+    text-align: left;
+    padding-top: 4px;
+  }
+  #table-clientes tbody td:nth-child(4)::before {
+    display: block;
+    margin-bottom: 6px;
+  }
+
+  .empty-state { text-align: left; }
+
+  /* Panel de detalle expandido: ya es su propia tarjeta, no lleva
+     el tratamiento de fila anterior (pisa las reglas de nth-child(1)) */
+  #table-facturas tbody tr td[colspan] {
+    display: block;
+    padding: 0;
+    border: none;
+    font-weight: 400;
+    font-size: 13px;
   }
 }
 

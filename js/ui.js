@@ -191,8 +191,8 @@ export function renderTopClientsTable(ranking) {
       (c) => `
       <tr>
         <td>${escapeHtml(c.cliente)}</td>
-        <td class="num mono">${formatMoney(c.mxnEquivalente)}</td>
-        <td class="num mono">${formatPct(c.pctDelTotal)}</td>
+        <td class="num mono" data-label="Facturación">${formatMoney(c.mxnEquivalente)}</td>
+        <td class="num mono" data-label="% del total">${formatPct(c.pctDelTotal)}</td>
       </tr>`
     )
     .join("");
@@ -293,11 +293,11 @@ export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId 
         <tr class="clickable" data-id="${escapeAttr(inv.factura)}">
           <td class="mono">${escapeHtml(inv.factura)}</td>
           <td>${escapeHtml(inv.cliente)}</td>
-          <td>${formatDate(inv.fecha)}</td>
-          <td><span class="badge currency">${inv.moneda}</span></td>
-          <td class="num mono">${montoCell(inv)}</td>
-          <td>${invoiceBadge(inv)}</td>
-          <td>${formatDate(inv.vencimiento)}</td>
+          <td data-label="Fecha">${formatDate(inv.fecha)}</td>
+          <td data-label="Moneda"><span class="badge currency">${inv.moneda}</span></td>
+          <td class="num mono" data-label="Monto">${montoCell(inv)}</td>
+          <td data-label="Estatus">${invoiceBadge(inv)}</td>
+          <td data-label="Vencimiento">${formatDate(inv.vencimiento)}</td>
         </tr>`];
 
       if (expandedId === inv.factura) {
@@ -373,15 +373,15 @@ export function renderClientesTable(ranking, selectedClient, onSelect) {
       (c) => `
       <tr class="clickable client-row ${c.cliente === selectedClient ? "selected" : ""}" data-cliente="${escapeAttr(c.cliente)}">
         <td>${escapeHtml(c.cliente)}</td>
-        <td class="num mono">${formatNumber(c.facturas)}</td>
-        <td class="num mono">${formatMoney(c.mxnEquivalente)}</td>
-        <td>
+        <td class="num mono" data-label="Facturas">${formatNumber(c.facturas)}</td>
+        <td class="num mono" data-label="Facturación">${formatMoney(c.mxnEquivalente)}</td>
+        <td data-label="% del total">
           <div class="bar-cell">
             <div class="bar-track"><div class="bar-fill" style="width:${maxVal ? (c.mxnEquivalente / maxVal) * 100 : 0}%"></div></div>
             <span class="mono" style="font-size:12.5px; color:var(--text-muted); min-width:44px;">${formatPct(c.pctDelTotal)}</span>
           </div>
         </td>
-        <td class="num mono">${formatMoney(c.ticketPromedio)}</td>
+        <td class="num mono" data-label="Ticket promedio">${formatMoney(c.ticketPromedio)}</td>
       </tr>`
     )
     .join("");

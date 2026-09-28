@@ -10,14 +10,36 @@ export const DATA_SOURCE = {
   FALLBACK: "fallback",
 };
 
-async function fetchLive() {
-  if (!CONFIG.APPS_SCRIPT_URL) return null;
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchLiveOnce() {
   const url = `${CONFIG.APPS_SCRIPT_URL}?token=${encodeURIComponent(CONFIG.ACCESS_TOKEN)}`;
   const res = await fetch(url, { cache: "no-store" });
   if (!res.ok) throw new Error(`Apps Script respondió ${res.status}`);
   const json = await res.json();
   if (json && json.error) throw new Error(json.error);
   return json;
+}
+
+// Apps Script es lento y a veces falla de forma pasajera (sobre todo
+// "en frío", tras un rato sin uso). Antes de rendirnos y mostrar el
+// snapshot de respaldo, reintentamos un par de veces.
+async function fetchLive() {
+  if (!CONFIG.APPS_SCRIPT_URL) return null;
+  const delaysMs = [800, 2000];
+  let lastError = null;
+
+  for (let attempt = 0; attempt <= delaysMs.length; attempt++) {
+    try {
+      return await fetchLiveOnce();
+    } catch (err) {
+      lastError = err;
+      if (attempt < delaysMs.length) await wait(delaysMs[attempt]);
+    }
+  }
+  throw lastError;
 }
 
 async function fetchFallback() {
