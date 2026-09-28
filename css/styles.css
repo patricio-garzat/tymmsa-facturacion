@@ -828,6 +828,32 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
   margin-bottom: 2px;
 }
 
+.ofiview-detail {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  font-size: 13px;
+  display: grid;
+  gap: 8px;
+}
+
+.ofiview-detail .dl-label {
+  color: var(--text-muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  margin-bottom: 2px;
+}
+
+.ofiview-comments {
+  white-space: pre-wrap;
+}
+
+.ofiview-items {
+  margin: 0;
+  padding-left: 18px;
+}
+
 /* ---------- Footer ---------- */
 
 .footer-note {

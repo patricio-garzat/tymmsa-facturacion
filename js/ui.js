@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20260928d";
-import { monthShortName, monthLongName } from "./processing.js?v=20260928d";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20260928d";
+import { ALL } from "./filters.js?v=20260928e";
+import { monthShortName, monthLongName } from "./processing.js?v=20260928e";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20260928e";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -271,7 +271,37 @@ export function renderFacturacionSummary(summary) {
   `;
 }
 
-export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId }, onRowClick) {
+function ofiviewDetailBlock(entry) {
+  const header = `<div class="dl-label">Ofiview (ERP)</div>`;
+
+  if (!entry || entry.loading) {
+    return `<div class="ofiview-detail">${header}<div class="text-muted">Consultando Ofiview…</div></div>`;
+  }
+  if (entry.error) {
+    return `<div class="ofiview-detail">${header}<div class="text-muted">No se pudo conectar con Ofiview.</div></div>`;
+  }
+  if (!entry.found) {
+    return `<div class="ofiview-detail">${header}<div class="text-muted">No se encontró esta factura en Ofiview.</div></div>`;
+  }
+
+  const comentarios = entry.comentarios
+    ? `<div class="ofiview-comments">${escapeHtml(entry.comentarios)}</div>`
+    : `<div class="text-muted">Sin comentarios.</div>`;
+
+  const articulos = (entry.articulos || [])
+    .map((a) => `<li>${escapeHtml(a.producto || "")}${a.cantidad ? ` · x${a.cantidad}` : ""}</li>`)
+    .join("");
+
+  return `
+    <div class="ofiview-detail">
+      ${header}
+      <div><div class="dl-label">Descripción</div>${articulos ? `<ul class="ofiview-items">${articulos}</ul>` : `<span class="text-muted">Sin artículos.</span>`}</div>
+      <div><div class="dl-label">Comentarios</div>${comentarios}</div>
+    </div>
+  `;
+}
+
+export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId, ofiviewCache }, onRowClick) {
   $("#fac-count").textContent = `${formatNumber(invoices.length)} factura${invoices.length === 1 ? "" : "s"}`;
 
   $$("#table-facturas thead th[data-sort]").forEach((th) => {
@@ -318,6 +348,7 @@ export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId 
                 <div class="only-mobile-detail"><div class="dl-label">Vencimiento</div>${formatDate(inv.vencimiento)}</div>
                 <div class="only-mobile-detail"><div class="dl-label">Semáforo</div>${invoiceBadge(inv)}</div>
               </div>
+              ${ofiviewDetailBlock(ofiviewCache && ofiviewCache[inv.factura])}
             </td>
           </tr>`);
       }

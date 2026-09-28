@@ -21,6 +21,17 @@
  * El tipo de cambio histórico (Banxico) se trae directamente desde el
  * portal (ver js/fxService.js) porque el API de Banxico acepta llamadas
  * de navegador (CORS); este script no necesita tocarlo.
+ *
+ * DETALLE DE FACTURAS DESDE OFIVIEW (ERP):
+ * Este script también puede consultar, bajo demanda, el comentario y la
+ * descripción de una factura directamente desde Ofiview (erp.ofiview.com).
+ * El usuario/contraseña de Ofiview NUNCA se escriben en este archivo
+ * (es un script público en GitHub). Se configuran así:
+ * 1. En el editor de Apps Script: ⚙️ Configuración del proyecto.
+ * 2. Baja hasta "Propiedades del script" > "Añadir propiedad del script".
+ * 3. Agrega OFIVIEW_USERNAME con tu usuario de Ofiview.
+ * 4. Agrega OFIVIEW_PASSWORD con tu contraseña de Ofiview.
+ * 5. Guarda. No hace falta volver a desplegar para que tomen efecto.
  */
 
 var ACCESS_TOKEN = 'f1b0cxmucl1s7CLbdnaq0ysJ62pclPsT';
@@ -28,11 +39,26 @@ var ACCESS_TOKEN = 'f1b0cxmucl1s7CLbdnaq0ysJ62pclPsT';
 var SHEET_REGISTRO = 'REGISTRO';
 var SHEET_CATALOGOS = 'CATALOGOS';
 
+var OFIVIEW_BASE = 'https://erp.ofiview.com';
+var OFIVIEW_APP_CLIENT_ID = 9;
+var OFIVIEW_COMPANY_ID = 49;
+var OFIVIEW_BRANCH_ID = 65;
+var OFIVIEW_SESSION_CACHE_KEY = 'ofiview_session_cookie';
+var OFIVIEW_SESSION_TTL_SECONDS = 900; // 15 minutos
+
 function doGet(e) {
   try {
     var token = e && e.parameter ? e.parameter.token : null;
     if (token !== ACCESS_TOKEN) {
       return jsonResponse({ error: 'unauthorized' }, 401);
+    }
+
+    var action = e.parameter.action || 'sheet';
+
+    if (action === 'ofiview') {
+      var factura = String(e.parameter.factura || '').trim();
+      if (!factura) return jsonResponse({ error: 'factura requerida' }, 400);
+      return jsonResponse(getOfiviewInvoiceDetail(factura), 200);
     }
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -45,6 +71,94 @@ function doGet(e) {
     return jsonResponse(payload, 200);
   } catch (err) {
     return jsonResponse({ error: String(err) }, 500);
+  }
+}
+
+/* ---------------- Ofiview (ERP) ---------------- */
+
+function getOfiviewSessionCookie(forceNew) {
+  var cache = CacheService.getScriptCache();
+  if (!forceNew) {
+    var cached = cache.get(OFIVIEW_SESSION_CACHE_KEY);
+    if (cached) return cached;
+  }
+
+  var props = PropertiesService.getScriptProperties();
+  var username = props.getProperty('OFIVIEW_USERNAME');
+  var password = props.getProperty('OFIVIEW_PASSWORD');
+  if (!username || !password) {
+    throw new Error('Faltan OFIVIEW_USERNAME / OFIVIEW_PASSWORD en las propiedades del script');
+  }
+
+  var response = UrlFetchApp.fetch(OFIVIEW_BASE + '/Account/Login', {
+    method: 'post',
+    payload: { UserName: username, Password: password },
+    followRedirects: false,
+    muteHttpExceptions: true
+  });
+
+  var headers = response.getAllHeaders();
+  var cookies = headers['Set-Cookie'] || headers['set-cookie'];
+  if (!cookies) throw new Error('Ofiview no devolvió sesión al iniciar sesión (revisa OFIVIEW_USERNAME / OFIVIEW_PASSWORD)');
+
+  var cookieArray = Array.isArray(cookies) ? cookies : [cookies];
+  var cookieHeader = cookieArray.map(function (c) { return c.split(';')[0]; }).join('; ');
+
+  cache.put(OFIVIEW_SESSION_CACHE_KEY, cookieHeader, OFIVIEW_SESSION_TTL_SECONDS);
+  return cookieHeader;
+}
+
+function ofiviewFetch(path, cookieHeader) {
+  var response = UrlFetchApp.fetch(OFIVIEW_BASE + path, {
+    method: 'get',
+    headers: { Cookie: cookieHeader },
+    followRedirects: false,
+    muteHttpExceptions: true
+  });
+  var code = response.getResponseCode();
+  if (code !== 200) {
+    throw new Error('sesión inválida (' + code + ')');
+  }
+  return JSON.parse(response.getContentText());
+}
+
+function ofiviewSalesInvoicePath(suffix) {
+  return '/rest/v1/ApplicationClients/' + OFIVIEW_APP_CLIENT_ID +
+    '/Companies/' + OFIVIEW_COMPANY_ID + '/Branches/' + OFIVIEW_BRANCH_ID +
+    '/Sales/SalesInvoices' + suffix;
+}
+
+function getOfiviewInvoiceDetail(factura) {
+  var attempt = function (forceNew) {
+    var cookieHeader = getOfiviewSessionCookie(forceNew);
+
+    var listPath = ofiviewSalesInvoicePath(
+      '/?FullSequence=' + encodeURIComponent(factura) +
+      '&_search=false&rows=10&page=1&sidx=SalesInvoiceId&sord=desc'
+    );
+    var listResult = ofiviewFetch(listPath, cookieHeader);
+    var row = listResult && listResult.Rows && listResult.Rows[0];
+    if (!row) return { found: false };
+
+    var detail = ofiviewFetch(ofiviewSalesInvoicePath('/' + row.SalesInvoiceId), cookieHeader);
+    var items = (detail.SalesInvoiceLineItems || []).map(function (li) {
+      return { producto: li.ProductName, cantidad: li.Quantity, precioUnitario: li.UnitPrice };
+    });
+
+    return {
+      found: true,
+      factura: row.FullSequence,
+      comentarios: row.Comments || '',
+      articulos: items
+    };
+  };
+
+  try {
+    return attempt(false);
+  } catch (err) {
+    // La sesión guardada pudo caducar o invalidarse; intenta una vez más
+    // con un login nuevo antes de rendirse.
+    return attempt(true);
   }
 }
 

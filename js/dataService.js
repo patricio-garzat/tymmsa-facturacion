@@ -3,7 +3,7 @@
 // desde el Apps Script Web App, o desde el snapshot local si no hay conexión
 // configurada o falla la red. No procesa ni calcula nada aquí.
 
-import { CONFIG } from "./config.js?v=20260928d";
+import { CONFIG } from "./config.js?v=20260928e";
 
 export const DATA_SOURCE = {
   LIVE: "live",
