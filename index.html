@@ -119,7 +119,7 @@
             <div class="chart-title">Principales clientes</div>
           </div>
           <div class="table-wrap" style="border:none;">
-            <table id="table-top-clients">
+            <table id="table-top-clients" class="card-table">
               <thead>
                 <tr>
                   <th>Cliente</th>
@@ -146,7 +146,7 @@
       <div class="summary-bar" id="fac-summary"></div>
 
       <div class="toolbar">
-        <input type="text" class="search-input" id="fac-search" placeholder="Buscar por factura o cliente…" />
+        <input type="text" class="search-input" id="fac-search" placeholder="Buscar por factura, cliente o fecha…" />
         <span class="result-count" id="fac-count"></span>
         <button class="btn-secondary no-print" id="fac-print" title="Imprimir esta tabla">🖨️ Imprimir</button>
         <button class="btn-primary no-print" id="fac-export" title="Descargar como archivo Excel (.xlsx)">⬇ Exportar Excel</button>
@@ -155,7 +155,7 @@
       <div class="print-header" id="print-header"></div>
 
       <div class="table-wrap">
-        <table id="table-facturas">
+        <table id="table-facturas" class="card-table">
           <thead>
             <tr>
               <th data-sort="factura">Factura</th>
@@ -180,7 +180,7 @@
           <span class="text-muted" id="clientes-subtitle" style="font-size:12.5px;"></span>
         </div>
         <div class="table-wrap" style="border:none;">
-          <table id="table-clientes">
+          <table id="table-clientes" class="card-table">
             <thead>
               <tr>
                 <th>Cliente</th>

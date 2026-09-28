@@ -303,6 +303,8 @@ export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId 
           <tr>
             <td colspan="7" style="padding:0 16px 14px;">
               <div class="detail-panel">
+                <div class="only-mobile-detail"><div class="dl-label">Fecha</div>${formatDate(inv.fecha)}</div>
+                <div class="only-mobile-detail"><div class="dl-label">Moneda</div><span class="badge currency">${inv.moneda}</span></div>
                 <div><div class="dl-label">Monto original</div>${inv.moneda === "USD" ? formatUsd(inv.monto) : formatMoney(inv.monto)}</div>
                 <div><div class="dl-label">Monto sin IVA</div>${inv.moneda === "USD" ? formatUsd(inv.montoSinIva) : formatMoney(inv.montoSinIva)}</div>
                 ${inv.moneda === "USD" ? `
@@ -313,6 +315,8 @@ export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId 
                 <div><div class="dl-label">Días crédito</div>${inv.diasCredito ?? "—"}</div>
                 <div><div class="dl-label">Estatus</div>${escapeHtml(inv.estatus)}</div>
                 <div><div class="dl-label">Días de atraso</div>${inv.diasAtraso ?? "—"}</div>
+                <div class="only-mobile-detail"><div class="dl-label">Vencimiento</div>${formatDate(inv.vencimiento)}</div>
+                <div class="only-mobile-detail"><div class="dl-label">Semáforo</div>${invoiceBadge(inv)}</div>
               </div>
             </td>
           </tr>`);
@@ -497,7 +501,7 @@ export function renderProjection(projection, year) {
         <span class="text-muted" style="font-size:12.5px;">${projection.mesesCerrados} meses cerrados · ${projection.mesesFaltantes} por facturar</span>
       </div>
       <div class="table-wrap" style="border:none;">
-        <table>
+        <table class="card-table">
           <thead>
             <tr><th>Escenario</th><th class="num">Promedio mensual</th><th class="num">Proyección de cierre</th>${projection.metaAnual ? '<th class="num">% de la meta</th>' : ""}</tr>
           </thead>
@@ -507,9 +511,9 @@ export function renderProjection(projection, year) {
                 ([label, s]) => `
               <tr>
                 <td>${label}</td>
-                <td class="num mono">${formatMoney(s.promedio)}</td>
-                <td class="num mono">${formatMoney(s.proyeccion)}</td>
-                ${projection.metaAnual ? `<td class="num mono">${formatPct(s.proyeccion / projection.metaAnual)}</td>` : ""}
+                <td class="num mono" data-label="Promedio mensual">${formatMoney(s.promedio)}</td>
+                <td class="num mono" data-label="Proyección de cierre">${formatMoney(s.proyeccion)}</td>
+                ${projection.metaAnual ? `<td class="num mono" data-label="% de la meta">${formatPct(s.proyeccion / projection.metaAnual)}</td>` : ""}
               </tr>`
               )
               .join("")}

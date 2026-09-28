@@ -18,7 +18,7 @@ import {
   computeFacturacionSummary,
 } from "./calculations.js";
 import { generateInsights } from "./insights.js";
-import { formatMoney, formatMoneyCompact } from "./format.js";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js";
 import { renderMonthlyChart } from "./charts.js";
 import { exportInvoicesToExcel } from "./exportExcel.js";
 import { isUnlocked, tryUnlock, lock } from "./auth.js";
@@ -201,7 +201,11 @@ function renderFacturacionTab() {
   if (facturacion.search.trim()) {
     const q = facturacion.search.trim().toLowerCase();
     invoices = invoices.filter(
-      (inv) => inv.factura.toLowerCase().includes(q) || inv.cliente.toLowerCase().includes(q)
+      (inv) =>
+        inv.factura.toLowerCase().includes(q) ||
+        inv.cliente.toLowerCase().includes(q) ||
+        formatDate(inv.fecha).toLowerCase().includes(q) ||
+        formatDate(inv.vencimiento).toLowerCase().includes(q)
     );
   }
 
