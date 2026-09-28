@@ -76,6 +76,28 @@ function doGet(e) {
 
 /* ---------------- Ofiview (ERP) ---------------- */
 
+function extractCookieHeader(response) {
+  var headers = response.getAllHeaders();
+  var cookies = headers['Set-Cookie'] || headers['set-cookie'];
+  if (!cookies) return null;
+  var cookieArray = Array.isArray(cookies) ? cookies : [cookies];
+  return cookieArray.map(function (c) { return c.split(';')[0]; }).join('; ');
+}
+
+function mergeCookieHeaders(a, b) {
+  var byName = {};
+  var order = [];
+  [a, b].forEach(function (header) {
+    if (!header) return;
+    header.split('; ').forEach(function (pair) {
+      var name = pair.split('=')[0];
+      if (!(name in byName)) order.push(name);
+      byName[name] = pair; // el valor más reciente gana
+    });
+  });
+  return order.map(function (name) { return byName[name]; }).join('; ');
+}
+
 function getOfiviewSessionCookie(forceNew) {
   var cache = CacheService.getScriptCache();
   if (!forceNew) {
@@ -90,19 +112,33 @@ function getOfiviewSessionCookie(forceNew) {
     throw new Error('Faltan OFIVIEW_USERNAME / OFIVIEW_PASSWORD en las propiedades del script');
   }
 
+  // Paso 1: pedir la página de login primero. Ofiview (ASP.NET) suele exigir
+  // que ya exista una cookie de sesión anónima antes de aceptar el POST de
+  // usuario/contraseña.
+  var loginPage = UrlFetchApp.fetch(OFIVIEW_BASE + '/Account/Login', {
+    method: 'get',
+    followRedirects: false,
+    muteHttpExceptions: true
+  });
+  var initialCookie = extractCookieHeader(loginPage);
+
+  // Paso 2: enviar usuario/contraseña, reenviando esa cookie inicial.
   var response = UrlFetchApp.fetch(OFIVIEW_BASE + '/Account/Login', {
     method: 'post',
     payload: { UserName: username, Password: password },
+    headers: initialCookie ? { Cookie: initialCookie } : {},
     followRedirects: false,
     muteHttpExceptions: true
   });
 
-  var headers = response.getAllHeaders();
-  var cookies = headers['Set-Cookie'] || headers['set-cookie'];
-  if (!cookies) throw new Error('Ofiview no devolvió sesión al iniciar sesión (revisa OFIVIEW_USERNAME / OFIVIEW_PASSWORD)');
+  var loginCookie = extractCookieHeader(response);
+  var cookieHeader = mergeCookieHeaders(initialCookie, loginCookie);
+  var code = response.getResponseCode();
 
-  var cookieArray = Array.isArray(cookies) ? cookies : [cookies];
-  var cookieHeader = cookieArray.map(function (c) { return c.split(';')[0]; }).join('; ');
+  if (!cookieHeader || (code !== 200 && code !== 302)) {
+    var snippet = response.getContentText().replace(/\s+/g, ' ').slice(0, 200);
+    throw new Error('Ofiview no devolvió sesión al iniciar sesión (código ' + code + '): ' + snippet);
+  }
 
   cache.put(OFIVIEW_SESSION_CACHE_KEY, cookieHeader, OFIVIEW_SESSION_TTL_SECONDS);
   return cookieHeader;
