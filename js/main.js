@@ -1,0 +1,343 @@
+// Punto de entrada. Orquesta: obtención -> procesamiento -> estado de
+// filtros -> cálculos -> visualización. No contiene reglas de negocio ni
+// manipulación de DOM directa (eso vive en calculations.js y ui.js).
+
+import { CONFIG } from "./config.js";
+import { loadInvoiceData, DATA_SOURCE } from "./dataService.js";
+import { fetchFixRatesForInvoices } from "./fxService.js";
+import { processRawData, monthShortName, monthLongName } from "./processing.js";
+import { ALL, createFilterState, applyFilters } from "./filters.js";
+import {
+  computeHeadlineKpis,
+  computeMonthlySeries,
+  computeClientRanking,
+  computeCurrencyMix,
+  computeConcentration,
+  computeAging,
+  computeProjection,
+  computeFacturacionSummary,
+} from "./calculations.js";
+import { generateInsights } from "./insights.js";
+import { formatMoney, formatMoneyCompact } from "./format.js";
+import { renderMonthlyChart } from "./charts.js";
+import { exportInvoicesToExcel } from "./exportExcel.js";
+import { isUnlocked, tryUnlock, lock } from "./auth.js";
+import * as ui from "./ui.js";
+
+const state = {
+  dataset: null,
+  filters: createFilterState(),
+  compareYear: null,
+  selectedClient: null,
+  facturacion: { search: "", sortKey: "fecha", sortDir: "desc", expandedId: null },
+};
+
+// Última tabla renderizada en Facturación, para que exportar/imprimir usen
+// exactamente lo que el usuario está viendo (mismos filtros, búsqueda y orden).
+let lastFacturacionView = { invoices: [], summary: null, filterLabel: "" };
+
+function describeFilters(filters, search) {
+  const parts = [];
+  parts.push(`Año: ${filters.anio === ALL ? "Todos" : filters.anio}`);
+  parts.push(`Mes: ${filters.mes === ALL ? "Todos" : monthLongName(filters.mes)}`);
+  parts.push(`Cliente: ${filters.cliente === ALL ? "Todos" : filters.cliente}`);
+  parts.push(`Moneda: ${filters.moneda === ALL ? "Todas" : filters.moneda}`);
+  if (search && search.trim()) parts.push(`Búsqueda: "${search.trim()}"`);
+  return parts.join(" · ");
+}
+
+async function boot() {
+  ui.wireNav(() => {});
+  ui.wireFilters(onFiltersChange);
+  ui.wireCompareYear(onCompareYearChange);
+  ui.wireFacturacionControls(onFacturacionSearch, onFacturacionSort);
+  ui.wireFacturacionActions(onFacturacionExport, onFacturacionPrint);
+  ui.wireClientDetailClose(() => {
+    state.selectedClient = null;
+    renderClientesTab();
+  });
+
+  await loadAndRender(true);
+
+  if (CONFIG.APPS_SCRIPT_URL) {
+    setInterval(() => loadAndRender(false), CONFIG.REFRESH_INTERVAL_MS);
+  }
+}
+
+async function loadAndRender(isInitial) {
+  try {
+    if (isInitial) ui.setLoadingText("Cargando facturación desde Google Sheets…");
+    const { raw, source, error } = await loadInvoiceData();
+    raw.fx = await fetchFixRatesForInvoices(raw.invoices);
+    state.dataset = processRawData(raw);
+
+    if (isInitial) {
+      const years = state.dataset.years;
+      state.filters.anio = years.length ? years[0] : ALL;
+      ui.populateFilterOptions(state.dataset);
+      ui.syncFilterInputs(state.filters);
+    }
+
+    const banners = [];
+    if (source === DATA_SOURCE.LIVE) {
+      ui.setSyncStatus("live", "Conectado a Google Sheets");
+    } else if (!CONFIG.APPS_SCRIPT_URL) {
+      ui.setSyncStatus("offline", "Datos de ejemplo (sin conexión configurada)");
+      banners.push(
+        "El portal aún no está conectado en vivo a Google Sheets. Está mostrando el último snapshot exportado. Sigue las instrucciones en <code>apps-script/Code.gs</code> para conectar en vivo."
+      );
+    } else {
+      ui.setSyncStatus("error", "Sin conexión — mostrando datos de respaldo");
+      banners.push(`No se pudo conectar con Google Sheets (${error || "error desconocido"}). Mostrando el último snapshot disponible.`);
+    }
+
+    if (state.dataset.fx.enabled && state.dataset.fx.error) {
+      banners.push(
+        `No se pudo obtener el tipo de cambio histórico de Banxico (${state.dataset.fx.error}). Las facturas en USD usan el tipo de cambio fijo de CATALOGOS mientras tanto.`
+      );
+    }
+    ui.renderDashboardBanner(banners);
+
+    ui.renderGeneratedAt(state.dataset.generatedAt);
+    renderAll();
+  } catch (err) {
+    ui.setLoadingText(`Error cargando datos: ${err.message || err}`);
+    ui.setSyncStatus("error", "Error de carga");
+    return;
+  } finally {
+    if (isInitial) ui.showApp();
+  }
+}
+
+function getContextYear() {
+  if (state.filters.anio !== ALL) return state.filters.anio;
+  return state.dataset.years.length ? state.dataset.years[0] : new Date().getFullYear();
+}
+
+function renderAll() {
+  renderDashboardTab();
+  renderFacturacionTab();
+  renderClientesTab();
+  renderAnalisisTab();
+}
+
+/* ---------------- Dashboard ---------------- */
+
+function renderDashboardTab() {
+  const { dataset, filters } = state;
+  const contextYear = getContextYear();
+
+  const kpis = computeHeadlineKpis(dataset, filters);
+  ui.renderKpis(kpis, filters, contextYear);
+
+  const periodInvoices = applyFilters(dataset.invoices, filters);
+  const topClients = computeClientRanking(periodInvoices);
+  ui.renderTopClientsTable(topClients);
+
+  ui.populateCompareYearOptions(dataset.years, contextYear, state.compareYear);
+  renderMonthlyChartFor(contextYear);
+
+  const insights = generateInsights(dataset, filters);
+  ui.renderInsights(insights);
+}
+
+function renderMonthlyChartFor(contextYear) {
+  const { dataset, filters, compareYear } = state;
+  const labels = Array.from({ length: 12 }, (_, i) => monthShortName(i + 1));
+  const seriesA = computeMonthlySeries(dataset, contextYear, filters).totals;
+  const seriesB = compareYear ? computeMonthlySeries(dataset, compareYear, filters).totals : null;
+
+  renderMonthlyChart("chart-monthly", {
+    labels,
+    seriesA,
+    labelA: String(contextYear),
+    seriesB,
+    labelB: compareYear ? String(compareYear) : null,
+    moneyFormatter: (v, compact) => (compact ? formatMoneyCompact(v) : formatMoney(v)),
+  });
+}
+
+function onCompareYearChange(year) {
+  state.compareYear = year;
+  renderMonthlyChartFor(getContextYear());
+}
+
+/* ---------------- Facturación ---------------- */
+
+function renderFacturacionTab() {
+  const { dataset, filters, facturacion } = state;
+  let invoices = applyFilters(dataset.invoices, filters, { includeCancelled: true });
+
+  if (facturacion.search.trim()) {
+    const q = facturacion.search.trim().toLowerCase();
+    invoices = invoices.filter(
+      (inv) => inv.factura.toLowerCase().includes(q) || inv.cliente.toLowerCase().includes(q)
+    );
+  }
+
+  const summary = computeFacturacionSummary(invoices);
+  ui.renderFacturacionSummary(summary);
+
+  invoices = sortInvoices(invoices, facturacion.sortKey, facturacion.sortDir);
+
+  const filterLabel = describeFilters(filters, facturacion.search);
+  ui.renderPrintHeader(filterLabel, invoices.length);
+  lastFacturacionView = { invoices, summary, filterLabel };
+
+  ui.renderFacturacionTable(invoices, facturacion, (id) => {
+    facturacion.expandedId = facturacion.expandedId === id ? null : id;
+    renderFacturacionTab();
+  });
+}
+
+function onFacturacionExport() {
+  const { invoices, summary, filterLabel } = lastFacturacionView;
+  const datePart = new Date().toISOString().slice(0, 10);
+  const ok = exportInvoicesToExcel({
+    invoices,
+    summary,
+    filterLabel,
+    fileName: `tymmsa-facturacion-${datePart}.xlsx`,
+  });
+  if (!ok) {
+    ui.setExportButtonState(false);
+    alert("No se pudo generar el Excel: no cargó el módulo de exportación (revisa tu conexión a internet e intenta de nuevo).");
+  }
+}
+
+function onFacturacionPrint() {
+  window.print();
+}
+
+function sortInvoices(invoices, key, dir) {
+  const mult = dir === "asc" ? 1 : -1;
+  return [...invoices].sort((a, b) => {
+    let va = a[key];
+    let vb = b[key];
+    if (va instanceof Date) va = va.getTime();
+    if (vb instanceof Date) vb = vb.getTime();
+    if (typeof va === "string") return va.localeCompare(vb, "es") * mult;
+    return ((va ?? 0) - (vb ?? 0)) * mult;
+  });
+}
+
+function onFacturacionSearch(value) {
+  state.facturacion.search = value;
+  renderFacturacionTab();
+}
+
+function onFacturacionSort(key) {
+  const f = state.facturacion;
+  if (f.sortKey === key) {
+    f.sortDir = f.sortDir === "asc" ? "desc" : "asc";
+  } else {
+    f.sortKey = key;
+    f.sortDir = key === "fecha" || key === "vencimiento" || key === "mxnEquivalente" ? "desc" : "asc";
+  }
+  renderFacturacionTab();
+}
+
+/* ---------------- Clientes ---------------- */
+
+function renderClientesTab() {
+  const { dataset, filters, selectedClient } = state;
+  const periodInvoices = applyFilters(dataset.invoices, filters);
+  const ranking = computeClientRanking(periodInvoices);
+
+  ui.renderClientesTable(ranking, selectedClient, (cliente) => {
+    state.selectedClient = state.selectedClient === cliente ? null : cliente;
+    renderClientesTab();
+  });
+
+  if (state.selectedClient) {
+    const contextYear = getContextYear();
+    const clientFilters = { ...filters, cliente: state.selectedClient, mes: ALL, anio: contextYear };
+    const clientYearInvoices = applyFilters(dataset.invoices, clientFilters);
+    const total = clientYearInvoices.reduce((acc, i) => acc + i.mxnEquivalente, 0);
+
+    ui.renderClientDetailHeader(state.selectedClient, total);
+
+    const labels = Array.from({ length: 12 }, (_, i) => monthShortName(i + 1));
+    const seriesA = computeMonthlySeries(dataset, contextYear, { ...filters, cliente: state.selectedClient }).totals;
+    renderMonthlyChart("chart-client-detail", {
+      labels,
+      seriesA,
+      labelA: String(contextYear),
+      seriesB: null,
+      labelB: null,
+      moneyFormatter: (v, compact) => (compact ? formatMoneyCompact(v) : formatMoney(v)),
+    });
+  } else {
+    ui.renderClientDetailHeader(null, 0);
+  }
+}
+
+/* ---------------- Análisis ---------------- */
+
+function renderAnalisisTab() {
+  const { dataset, filters } = state;
+  const periodInvoices = applyFilters(dataset.invoices, filters);
+
+  const mix = computeCurrencyMix(periodInvoices);
+  const ranking = computeClientRanking(periodInvoices);
+  const concentration = computeConcentration(ranking);
+  const aging = computeAging(periodInvoices);
+
+  ui.renderAnalisisGrid({ mix, concentration, aging, fx: dataset.fx });
+
+  const contextYear = getContextYear();
+  const isAnnualScope = filters.mes === ALL && filters.cliente === ALL && filters.moneda === ALL;
+  const projection = isAnnualScope ? computeProjection(dataset, contextYear, filters) : null;
+  ui.renderProjection(projection, contextYear);
+}
+
+/* ---------------- Filters wiring ---------------- */
+
+function onFiltersChange(newFilters) {
+  state.filters = newFilters;
+  state.selectedClient = null;
+  ui.syncFilterInputs(state.filters);
+  renderAll();
+}
+
+/* ---------------- Acceso (contraseña) ---------------- */
+
+function startApp() {
+  document.getElementById("auth-gate").style.display = "none";
+  document.getElementById("loading-screen").classList.remove("hidden");
+  document.getElementById("auth-logout").addEventListener("click", () => {
+    lock();
+    window.location.reload();
+  });
+  boot();
+}
+
+function showAuthGate() {
+  const gate = document.getElementById("auth-gate");
+  const loadingScreen = document.getElementById("loading-screen");
+  const form = document.getElementById("auth-form");
+  const input = document.getElementById("auth-password");
+  const error = document.getElementById("auth-error");
+
+  loadingScreen.classList.add("hidden");
+  gate.style.display = "flex";
+  input.focus();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const ok = await tryUnlock(input.value);
+    if (ok) {
+      startApp();
+    } else {
+      error.style.display = "block";
+      input.value = "";
+      input.focus();
+    }
+  });
+}
+
+if (isUnlocked()) {
+  startApp();
+} else {
+  showAuthGate();
+}

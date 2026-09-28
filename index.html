@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="es-MX" data-theme="light">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TYMMSA · Facturación</title>
+<meta name="description" content="Portal privado de facturación y análisis de TYMMSA." />
+<link rel="icon" type="image/svg+xml" href="assets/tymmsa-icon-navy.svg" />
+<link rel="alternate icon" type="image/png" href="assets/tymmsa-icon-navy.png" />
+<link rel="apple-touch-icon" href="assets/tymmsa-icon-navy.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+
+<div class="auth-gate" id="auth-gate" style="display:none">
+  <form class="auth-card" id="auth-form">
+    <img src="assets/tymmsa-icon-navy.svg" alt="" class="auth-logo" />
+    <h1 class="auth-title">TYMMSA · Facturación</h1>
+    <p class="auth-subtitle">Portal privado. Ingresa la contraseña para continuar.</p>
+    <input type="password" id="auth-password" class="auth-input" placeholder="Contraseña" autocomplete="current-password" autofocus />
+    <button type="submit" class="btn-primary auth-submit">Entrar</button>
+    <p class="auth-error" id="auth-error" style="display:none">Contraseña incorrecta. Intenta de nuevo.</p>
+  </form>
+</div>
+
+<div class="loading-screen" id="loading-screen">
+  <img src="assets/tymmsa-icon-navy.svg" alt="" class="spinner-logo" />
+  <div class="loading-text" id="loading-text">Cargando facturación…</div>
+</div>
+
+<div class="app" id="app" style="display:none">
+
+  <header class="topbar">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <button class="nav-toggle" id="nav-toggle" aria-label="Abrir menú">☰</button>
+      <div class="brand">
+        <img src="assets/tymmsa-logo-white.svg" alt="TYMMSA" class="brand-logo" />
+      </div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="facturacion">Facturación</button>
+      <button class="nav-btn" data-view="clientes">Clientes</button>
+      <button class="nav-btn" data-view="analisis">Análisis</button>
+    </nav>
+    <div class="topbar-right">
+      <div class="sync-indicator" id="sync-indicator">
+        <span class="sync-dot" id="sync-dot"></span>
+        <span id="sync-label">Conectando…</span>
+      </div>
+      <button class="auth-logout" id="auth-logout" title="Cerrar sesión">Cerrar sesión</button>
+    </div>
+  </header>
+
+  <div class="filterbar">
+    <div class="filter-field">
+      <label for="f-anio">Año</label>
+      <select id="f-anio"></select>
+    </div>
+    <div class="filter-field">
+      <label for="f-mes">Mes</label>
+      <select id="f-mes"></select>
+    </div>
+    <div class="filter-field">
+      <label for="f-cliente">Cliente</label>
+      <select id="f-cliente"></select>
+    </div>
+    <div class="filter-field">
+      <label for="f-moneda">Moneda</label>
+      <select id="f-moneda"></select>
+    </div>
+    <button class="filter-reset" id="f-reset">Limpiar filtros</button>
+    <div class="filter-spacer"></div>
+    <div class="as-of" id="as-of"></div>
+  </div>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section class="view active" id="view-dashboard">
+      <div id="dashboard-banner"></div>
+
+      <div class="kpi-grid" id="kpi-grid"></div>
+
+      <div class="card chart-card">
+        <div class="chart-card-header">
+          <div class="chart-title">Facturación mensual</div>
+          <div class="chart-toggle">
+            <label for="chart-compare-year" class="text-muted" style="font-size:12.5px;">Comparar con</label>
+            <select id="chart-compare-year"></select>
+          </div>
+        </div>
+        <div class="chart-canvas-wrap">
+          <canvas id="chart-monthly"></canvas>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="section-header">
+            <div class="chart-title">Principales clientes</div>
+          </div>
+          <div class="table-wrap" style="border:none;">
+            <table id="table-top-clients">
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th class="num">Facturación</th>
+                  <th class="num">% del total</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="section-header">
+            <div class="chart-title">Insights</div>
+          </div>
+          <div class="insights-list" id="insights-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FACTURACIÓN -->
+    <section class="view" id="view-facturacion">
+      <div class="summary-bar" id="fac-summary"></div>
+
+      <div class="toolbar">
+        <input type="text" class="search-input" id="fac-search" placeholder="Buscar por factura o cliente…" />
+        <span class="result-count" id="fac-count"></span>
+        <button class="btn-secondary no-print" id="fac-print" title="Imprimir esta tabla">🖨️ Imprimir</button>
+        <button class="btn-primary no-print" id="fac-export" title="Descargar como archivo Excel (.xlsx)">⬇ Exportar Excel</button>
+      </div>
+
+      <div class="print-header" id="print-header"></div>
+
+      <div class="table-wrap">
+        <table id="table-facturas">
+          <thead>
+            <tr>
+              <th data-sort="factura">Factura</th>
+              <th data-sort="cliente">Cliente</th>
+              <th data-sort="fecha">Fecha</th>
+              <th data-sort="moneda">Moneda</th>
+              <th class="num" data-sort="mxnEquivalente">Monto</th>
+              <th data-sort="estatus">Estatus</th>
+              <th data-sort="vencimiento">Vencimiento</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CLIENTES -->
+    <section class="view" id="view-clientes">
+      <div class="card">
+        <div class="section-header">
+          <div class="chart-title">Ranking de clientes</div>
+          <span class="text-muted" id="clientes-subtitle" style="font-size:12.5px;"></span>
+        </div>
+        <div class="table-wrap" style="border:none;">
+          <table id="table-clientes">
+            <thead>
+              <tr>
+                <th>Cliente</th>
+                <th class="num">Facturas</th>
+                <th class="num">Facturación</th>
+                <th>% del total</th>
+                <th class="num">Ticket promedio</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card client-detail" id="client-detail" style="display:none;">
+        <div class="chart-card-header">
+          <div class="chart-title" id="client-detail-title"></div>
+          <div class="chip" id="client-detail-chip"></div>
+        </div>
+        <div class="chart-canvas-wrap" style="height:260px;">
+          <canvas id="chart-client-detail"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- ANÁLISIS -->
+    <section class="view" id="view-analisis">
+      <div class="grid-3" id="analisis-grid"></div>
+      <div id="analisis-projection"></div>
+    </section>
+  </main>
+
+  <p class="footer-note">Datos desde Google Sheets · <span id="footer-generated"></span></p>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
