@@ -3,7 +3,7 @@
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
 import { CONFIG } from "./config.js";
-import { loadInvoiceData, DATA_SOURCE } from "./dataService.js";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js";
 import { fetchFixRatesForInvoices } from "./fxService.js";
 import { processRawData, monthShortName, monthLongName } from "./processing.js";
 import { ALL, createFilterState, applyFilters } from "./filters.js";
@@ -57,7 +57,18 @@ async function boot() {
     renderClientesTab();
   });
 
-  await loadAndRender(true);
+  // Apps Script puede tardar varios segundos "en frío". Si ya tenemos algo
+  // guardado de una visita anterior, lo pintamos de inmediato (sin esperar
+  // la red) y actualizamos en segundo plano — así no se ve una pantalla de
+  // carga larga cada vez que alguien abre el portal.
+  const cached = getCachedRaw();
+  if (cached) {
+    await applyRawData(cached.raw, { source: DATA_SOURCE.CACHE, error: null }, true);
+    ui.showApp();
+    loadAndRender(false);
+  } else {
+    await loadAndRender(true);
+  }
 
   if (CONFIG.APPS_SCRIPT_URL) {
     setInterval(() => loadAndRender(false), CONFIG.REFRESH_INTERVAL_MS);
@@ -68,45 +79,59 @@ async function loadAndRender(isInitial) {
   try {
     if (isInitial) ui.setLoadingText("Cargando facturación desde Google Sheets…");
     const { raw, source, error } = await loadInvoiceData();
-    raw.fx = await fetchFixRatesForInvoices(raw.invoices);
-    state.dataset = processRawData(raw);
-
-    if (isInitial) {
-      const years = state.dataset.years;
-      state.filters.anio = years.length ? years[0] : ALL;
-      ui.populateFilterOptions(state.dataset);
-      ui.syncFilterInputs(state.filters);
-    }
-
-    const banners = [];
-    if (source === DATA_SOURCE.LIVE) {
-      ui.setSyncStatus("live", "Conectado a Google Sheets");
-    } else if (!CONFIG.APPS_SCRIPT_URL) {
-      ui.setSyncStatus("offline", "Datos de ejemplo (sin conexión configurada)");
-      banners.push(
-        "El portal aún no está conectado en vivo a Google Sheets. Está mostrando el último snapshot exportado. Sigue las instrucciones en <code>apps-script/Code.gs</code> para conectar en vivo."
-      );
-    } else {
-      ui.setSyncStatus("error", "Sin conexión — mostrando datos de respaldo");
-      banners.push(`No se pudo conectar con Google Sheets (${error || "error desconocido"}). Mostrando el último snapshot disponible.`);
-    }
-
-    if (state.dataset.fx.enabled && state.dataset.fx.error) {
-      banners.push(
-        `No se pudo obtener el tipo de cambio histórico de Banxico (${state.dataset.fx.error}). Las facturas en USD usan el tipo de cambio fijo de CATALOGOS mientras tanto.`
-      );
-    }
-    ui.renderDashboardBanner(banners);
-
-    ui.renderGeneratedAt(state.dataset.generatedAt);
-    renderAll();
+    if (source === DATA_SOURCE.LIVE) setCachedRaw(raw);
+    await applyRawData(raw, { source, error }, isInitial);
   } catch (err) {
-    ui.setLoadingText(`Error cargando datos: ${err.message || err}`);
-    ui.setSyncStatus("error", "Error de carga");
+    if (isInitial) {
+      ui.setLoadingText(`Error cargando datos: ${err.message || err}`);
+      ui.setSyncStatus("error", "Error de carga");
+    }
     return;
   } finally {
     if (isInitial) ui.showApp();
   }
+}
+
+/**
+ * Procesa un JSON crudo ya obtenido (en vivo, de caché, o de respaldo) y
+ * lo refleja en la interfaz. Separado de loadAndRender para poder pintar
+ * con datos de caché sin tener que esperar ninguna llamada de red primero.
+ */
+async function applyRawData(raw, { source, error }, isInitial) {
+  raw.fx = await fetchFixRatesForInvoices(raw.invoices);
+  state.dataset = processRawData(raw);
+
+  if (isInitial) {
+    const years = state.dataset.years;
+    state.filters.anio = years.length ? years[0] : ALL;
+    ui.populateFilterOptions(state.dataset);
+    ui.syncFilterInputs(state.filters);
+  }
+
+  const banners = [];
+  if (source === DATA_SOURCE.LIVE) {
+    ui.setSyncStatus("live", "Conectado a Google Sheets");
+  } else if (source === DATA_SOURCE.CACHE) {
+    ui.setSyncStatus("offline", "Datos guardados — actualizando…");
+  } else if (!CONFIG.APPS_SCRIPT_URL) {
+    ui.setSyncStatus("offline", "Datos de ejemplo (sin conexión configurada)");
+    banners.push(
+      "El portal aún no está conectado en vivo a Google Sheets. Está mostrando el último snapshot exportado. Sigue las instrucciones en <code>apps-script/Code.gs</code> para conectar en vivo."
+    );
+  } else {
+    ui.setSyncStatus("error", "Sin conexión — mostrando datos de respaldo");
+    banners.push(`No se pudo conectar con Google Sheets (${error || "error desconocido"}). Mostrando el último snapshot disponible.`);
+  }
+
+  if (state.dataset.fx.enabled && state.dataset.fx.error) {
+    banners.push(
+      `No se pudo obtener el tipo de cambio histórico de Banxico (${state.dataset.fx.error}). Las facturas en USD usan el tipo de cambio fijo de CATALOGOS mientras tanto.`
+    );
+  }
+  ui.renderDashboardBanner(banners);
+
+  ui.renderGeneratedAt(state.dataset.generatedAt);
+  renderAll();
 }
 
 function getContextYear() {

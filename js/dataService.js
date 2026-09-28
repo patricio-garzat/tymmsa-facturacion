@@ -8,7 +8,36 @@ import { CONFIG } from "./config.js";
 export const DATA_SOURCE = {
   LIVE: "live",
   FALLBACK: "fallback",
+  CACHE: "cache",
 };
+
+const CACHE_KEY = "tymmsa_data_cache_v1";
+
+/**
+ * Último JSON en vivo que sí llegó a cargar, guardado en este navegador.
+ * Sirve para pintar la pantalla al instante en la siguiente visita,
+ * mientras Apps Script responde en segundo plano (puede tardar varios
+ * segundos "en frío"). No sustituye al dato en vivo, sólo evita la
+ * espera en pantalla.
+ */
+export function getCachedRaw() {
+  try {
+    const stored = localStorage.getItem(CACHE_KEY);
+    if (!stored) return null;
+    const parsed = JSON.parse(stored);
+    return parsed && parsed.raw ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function setCachedRaw(raw) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ raw, cachedAt: new Date().toISOString() }));
+  } catch {
+    // localStorage lleno o bloqueado: no es crítico, simplemente no cachea.
+  }
+}
 
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
