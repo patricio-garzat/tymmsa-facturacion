@@ -1,8 +1,28 @@
 // Capa de exportación (Excel).
 // Responsabilidad única: convertir una lista de facturas ya filtradas y su
-// resumen en un archivo .xlsx descargable. Usa SheetJS (cargado por CDN en
-// index.html como `XLSX` global). No decide qué facturas exportar ni
-// calcula nada — eso ya viene resuelto desde afuera.
+// resumen en un archivo .xlsx descargable. Usa SheetJS, cargado bajo demanda
+// (no en cada visita al portal, sólo la primera vez que alguien exporta) —
+// es una librería pesada (~900 KB) que la mayoría de las visitas nunca usa.
+
+const XLSX_SRC = "https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js";
+let xlsxLoadPromise = null;
+
+function loadXlsx() {
+  if (typeof XLSX !== "undefined") return Promise.resolve();
+  if (xlsxLoadPromise) return xlsxLoadPromise;
+
+  xlsxLoadPromise = new Promise((resolve, reject) => {
+    const script = document.createElement("script");
+    script.src = XLSX_SRC;
+    script.onload = () => resolve();
+    script.onerror = () => {
+      xlsxLoadPromise = null;
+      reject(new Error("No se pudo cargar el módulo de Excel"));
+    };
+    document.head.appendChild(script);
+  });
+  return xlsxLoadPromise;
+}
 
 const HEADERS = [
   "Factura", "Cliente", "Fecha", "Moneda", "Monto original",
@@ -44,9 +64,14 @@ function invoiceRow(inv) {
  * @param {object} opts.summary  resultado de computeFacturacionSummary
  * @param {string} opts.filterLabel  descripción legible de los filtros activos
  * @param {string} [opts.fileName]
- * @returns {boolean} true si se generó el archivo, false si SheetJS no cargó
+ * @returns {Promise<boolean>} true si se generó el archivo, false si SheetJS no cargó
  */
-export function exportInvoicesToExcel({ invoices, summary, filterLabel, fileName }) {
+export async function exportInvoicesToExcel({ invoices, summary, filterLabel, fileName }) {
+  try {
+    await loadXlsx();
+  } catch {
+    return false;
+  }
   if (typeof XLSX === "undefined") return false;
 
   const summaryRows = [

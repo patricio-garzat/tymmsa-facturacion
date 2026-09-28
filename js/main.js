@@ -215,17 +215,18 @@ function renderFacturacionTab() {
   });
 }
 
-function onFacturacionExport() {
+async function onFacturacionExport() {
   const { invoices, summary, filterLabel } = lastFacturacionView;
   const datePart = new Date().toISOString().slice(0, 10);
-  const ok = exportInvoicesToExcel({
+  ui.setExportButtonState(true, "Generando…");
+  const ok = await exportInvoicesToExcel({
     invoices,
     summary,
     filterLabel,
     fileName: `tymmsa-facturacion-${datePart}.xlsx`,
   });
+  ui.setExportButtonState(false);
   if (!ok) {
-    ui.setExportButtonState(false);
     alert("No se pudo generar el Excel: no cargó el módulo de exportación (revisa tu conexión a internet e intenta de nuevo).");
   }
 }
