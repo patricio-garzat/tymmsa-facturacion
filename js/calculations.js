@@ -3,7 +3,7 @@
 // filtradas), producir los números que la UI necesita. Funciones puras,
 // sin acceso a DOM ni a red.
 
-import { ALL, applyFilters, applyFiltersIgnoringMonth } from "./filters.js?v=20260928a";
+import { ALL, applyFilters, applyFiltersIgnoringMonth } from "./filters.js?v=20260928b";
 
 export function sumBy(invoices, field) {
   return invoices.reduce((acc, inv) => acc + (Number(inv[field]) || 0), 0);
