@@ -4,7 +4,7 @@
 
 import { CONFIG } from "./config.js";
 import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js";
-import { fetchFixRatesForInvoices } from "./fxService.js";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js";
 import { processRawData, monthShortName, monthLongName } from "./processing.js";
 import { ALL, createFilterState, applyFilters } from "./filters.js";
 import {
@@ -63,7 +63,7 @@ async function boot() {
   // carga larga cada vez que alguien abre el portal.
   const cached = getCachedRaw();
   if (cached) {
-    await applyRawData(cached.raw, { source: DATA_SOURCE.CACHE, error: null }, true);
+    await applyRawData(cached.raw, { source: DATA_SOURCE.CACHE, error: null }, true, { preferCachedFx: true });
     ui.showApp();
     loadAndRender(false);
   } else {
@@ -97,8 +97,13 @@ async function loadAndRender(isInitial) {
  * lo refleja en la interfaz. Separado de loadAndRender para poder pintar
  * con datos de caché sin tener que esperar ninguna llamada de red primero.
  */
-async function applyRawData(raw, { source, error }, isInitial) {
-  raw.fx = await fetchFixRatesForInvoices(raw.invoices);
+async function applyRawData(raw, { source, error }, isInitial, { preferCachedFx = false } = {}) {
+  // En la pintura instantánea desde caché no queremos esperar ninguna
+  // llamada de red — ni siquiera a Banxico. Si ya hay un tipo de cambio
+  // guardado de una visita anterior, se usa tal cual (se actualiza solo,
+  // porque el refresco en segundo plano sí trae uno fresco después).
+  const cachedFx = preferCachedFx ? getCachedFx() : null;
+  raw.fx = cachedFx || (await fetchFixRatesForInvoices(raw.invoices));
   state.dataset = processRawData(raw);
 
   if (isInitial) {

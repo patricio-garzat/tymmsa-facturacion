@@ -10,6 +10,31 @@
 import { CONFIG } from "./config.js";
 
 const EMPTY_RESULT = { enabled: false, rates: {}, serieTitulo: null, error: null };
+const FX_CACHE_KEY = "tymmsa_fx_cache_v1";
+
+/**
+ * Último resultado de Banxico que sí llegó a cargar, guardado en este
+ * navegador. El tipo de cambio FIX sólo cambia una vez al día (día hábil),
+ * así que reusarlo mientras llega uno fresco no compromete precisión y
+ * evita que la pantalla de "instantáneo desde caché" quede esperando de
+ * todos modos una llamada de red a Banxico.
+ */
+export function getCachedFx() {
+  try {
+    const stored = localStorage.getItem(FX_CACHE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch {
+    return null;
+  }
+}
+
+function setCachedFx(fx) {
+  try {
+    localStorage.setItem(FX_CACHE_KEY, JSON.stringify(fx));
+  } catch {
+    // no crítico
+  }
+}
 
 function banxicoDateToIso(fecha) {
   const [d, m, y] = String(fecha).split("/");
@@ -81,5 +106,7 @@ export async function fetchFixRatesForInvoices(rawInvoices) {
   const startDate = shiftIsoDate(earliest, -8);
   const endDate = new Date().toISOString().slice(0, 10);
 
-  return fetchFixRates(startDate, endDate);
+  const result = await fetchFixRates(startDate, endDate);
+  if (result.enabled && !result.error) setCachedFx(result);
+  return result;
 }
