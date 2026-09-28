@@ -25,13 +25,24 @@
  * DETALLE DE FACTURAS DESDE OFIVIEW (ERP):
  * Este script también puede consultar, bajo demanda, el comentario y la
  * descripción de una factura directamente desde Ofiview (erp.ofiview.com).
- * El usuario/contraseña de Ofiview NUNCA se escriben en este archivo
- * (es un script público en GitHub). Se configuran así:
- * 1. En el editor de Apps Script: ⚙️ Configuración del proyecto.
- * 2. Baja hasta "Propiedades del script" > "Añadir propiedad del script".
- * 3. Agrega OFIVIEW_USERNAME con tu usuario de Ofiview.
- * 4. Agrega OFIVIEW_PASSWORD con tu contraseña de Ofiview.
- * 5. Guarda. No hace falta volver a desplegar para que tomen efecto.
+ *
+ * Ofiview bloquea el inicio de sesión automático (exige verificar
+ * "dispositivo nuevo" en cada login que no venga de un navegador ya
+ * conocido), así que este script NO inicia sesión por su cuenta: usa una
+ * cookie de tu sesión real, que tú renuevas manualmente cada cierto tiempo
+ * (cada pocas semanas, cuando deje de funcionar). Nunca se escribe en este
+ * archivo (es un script público en GitHub) — se configura así:
+ * 1. Inicia sesión normalmente en https://erp.ofiview.com en Chrome.
+ * 2. Abre las Herramientas de desarrollador (F12 o Cmd+Opt+I) > pestaña "Network".
+ * 3. Recarga la página. Haz clic en cualquier petición a erp.ofiview.com.
+ * 4. En "Headers" (encabezados de la petición), busca "Cookie:" y copia
+ *    TODO su valor (una línea larga con varios nombre=valor separados por ;).
+ * 5. En el editor de Apps Script: ⚙️ Configuración del proyecto >
+ *    "Propiedades del script" > "Añadir propiedad del script".
+ * 6. Agrega OFIVIEW_COOKIE con el valor que copiaste.
+ * 7. Guarda. No hace falta volver a desplegar para que tome efecto.
+ * Cuando la sesión expire, el portal mostrará "sesión de Ofiview expiró";
+ * repite estos pasos para renovarla.
  */
 
 var ACCESS_TOKEN = 'f1b0cxmucl1s7CLbdnaq0ysJ62pclPsT';
@@ -43,8 +54,6 @@ var OFIVIEW_BASE = 'https://erp.ofiview.com';
 var OFIVIEW_APP_CLIENT_ID = 9;
 var OFIVIEW_COMPANY_ID = 49;
 var OFIVIEW_BRANCH_ID = 65;
-var OFIVIEW_SESSION_CACHE_KEY = 'ofiview_session_cookie';
-var OFIVIEW_SESSION_TTL_SECONDS = 900; // 15 minutos
 
 function doGet(e) {
   try {
@@ -76,72 +85,8 @@ function doGet(e) {
 
 /* ---------------- Ofiview (ERP) ---------------- */
 
-function extractCookieHeader(response) {
-  var headers = response.getAllHeaders();
-  var cookies = headers['Set-Cookie'] || headers['set-cookie'];
-  if (!cookies) return null;
-  var cookieArray = Array.isArray(cookies) ? cookies : [cookies];
-  return cookieArray.map(function (c) { return c.split(';')[0]; }).join('; ');
-}
-
-function mergeCookieHeaders(a, b) {
-  var byName = {};
-  var order = [];
-  [a, b].forEach(function (header) {
-    if (!header) return;
-    header.split('; ').forEach(function (pair) {
-      var name = pair.split('=')[0];
-      if (!(name in byName)) order.push(name);
-      byName[name] = pair; // el valor más reciente gana
-    });
-  });
-  return order.map(function (name) { return byName[name]; }).join('; ');
-}
-
-function getOfiviewSessionCookie(forceNew) {
-  var cache = CacheService.getScriptCache();
-  if (!forceNew) {
-    var cached = cache.get(OFIVIEW_SESSION_CACHE_KEY);
-    if (cached) return cached;
-  }
-
-  var props = PropertiesService.getScriptProperties();
-  var username = props.getProperty('OFIVIEW_USERNAME');
-  var password = props.getProperty('OFIVIEW_PASSWORD');
-  if (!username || !password) {
-    throw new Error('Faltan OFIVIEW_USERNAME / OFIVIEW_PASSWORD en las propiedades del script');
-  }
-
-  // Paso 1: pedir la página de login primero. Ofiview (ASP.NET) suele exigir
-  // que ya exista una cookie de sesión anónima antes de aceptar el POST de
-  // usuario/contraseña.
-  var loginPage = UrlFetchApp.fetch(OFIVIEW_BASE + '/Account/Login', {
-    method: 'get',
-    followRedirects: false,
-    muteHttpExceptions: true
-  });
-  var initialCookie = extractCookieHeader(loginPage);
-
-  // Paso 2: enviar usuario/contraseña, reenviando esa cookie inicial.
-  var response = UrlFetchApp.fetch(OFIVIEW_BASE + '/Account/Login', {
-    method: 'post',
-    payload: { UserName: username, Password: password },
-    headers: initialCookie ? { Cookie: initialCookie } : {},
-    followRedirects: false,
-    muteHttpExceptions: true
-  });
-
-  var loginCookie = extractCookieHeader(response);
-  var cookieHeader = mergeCookieHeaders(initialCookie, loginCookie);
-  var code = response.getResponseCode();
-
-  if (!cookieHeader || (code !== 200 && code !== 302)) {
-    var snippet = response.getContentText().replace(/\s+/g, ' ').slice(0, 200);
-    throw new Error('Ofiview no devolvió sesión al iniciar sesión (código ' + code + '): ' + snippet);
-  }
-
-  cache.put(OFIVIEW_SESSION_CACHE_KEY, cookieHeader, OFIVIEW_SESSION_TTL_SECONDS);
-  return cookieHeader;
+function getOfiviewCookie() {
+  return PropertiesService.getScriptProperties().getProperty('OFIVIEW_COOKIE');
 }
 
 function ofiviewFetch(path, cookieHeader) {
@@ -165,9 +110,12 @@ function ofiviewSalesInvoicePath(suffix) {
 }
 
 function getOfiviewInvoiceDetail(factura) {
-  var attempt = function (forceNew) {
-    var cookieHeader = getOfiviewSessionCookie(forceNew);
+  var cookieHeader = getOfiviewCookie();
+  if (!cookieHeader) {
+    return { found: false, sessionExpired: true };
+  }
 
+  try {
     var listPath = ofiviewSalesInvoicePath(
       '/?FullSequence=' + encodeURIComponent(factura) +
       '&_search=false&rows=10&page=1&sidx=SalesInvoiceId&sord=desc'
@@ -187,14 +135,10 @@ function getOfiviewInvoiceDetail(factura) {
       comentarios: row.Comments || '',
       articulos: items
     };
-  };
-
-  try {
-    return attempt(false);
   } catch (err) {
-    // La sesión guardada pudo caducar o invalidarse; intenta una vez más
-    // con un login nuevo antes de rendirse.
-    return attempt(true);
+    // La cookie guardada caducó o ya no es válida: hay que renovarla a mano
+    // (ver instrucciones al inicio de este archivo).
+    return { found: false, sessionExpired: true };
   }
 }
 

@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20260928e";
-import { monthShortName, monthLongName } from "./processing.js?v=20260928e";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20260928e";
+import { ALL } from "./filters.js?v=20260928f";
+import { monthShortName, monthLongName } from "./processing.js?v=20260928f";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20260928f";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -279,6 +279,9 @@ function ofiviewDetailBlock(entry) {
   }
   if (entry.error) {
     return `<div class="ofiview-detail">${header}<div class="text-muted">No se pudo conectar con Ofiview.</div></div>`;
+  }
+  if (entry.sessionExpired) {
+    return `<div class="ofiview-detail">${header}<div class="text-muted">La sesión de Ofiview expiró. Hay que renovar la cookie en Apps Script.</div></div>`;
   }
   if (!entry.found) {
     return `<div class="ofiview-detail">${header}<div class="text-muted">No se encontró esta factura en Ofiview.</div></div>`;
