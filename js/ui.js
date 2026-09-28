@@ -23,19 +23,17 @@ export function setLoadingText(text) {
 }
 
 export function wireNav(onNavigate) {
+  // Hay dos juegos de botones con la misma clase: el nav horizontal de
+  // escritorio y la barra inferior de móvil. Cualquiera de los dos que se
+  // use, se sincronizan entre sí por data-view.
   $$(".nav-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
-      $$(".nav-btn").forEach((b) => b.classList.remove("active"));
-      btn.classList.add("active");
+      const view = btn.dataset.view;
+      $$(".nav-btn").forEach((b) => b.classList.toggle("active", b.dataset.view === view));
       $$(".view").forEach((v) => v.classList.remove("active"));
-      $(`#view-${btn.dataset.view}`).classList.add("active");
-      $("#nav").classList.remove("open");
-      onNavigate(btn.dataset.view);
+      $(`#view-${view}`).classList.add("active");
+      onNavigate(view);
     });
-  });
-
-  $("#nav-toggle").addEventListener("click", () => {
-    $("#nav").classList.toggle("open");
   });
 }
 

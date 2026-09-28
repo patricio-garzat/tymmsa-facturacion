@@ -157,6 +157,10 @@ button {
   gap: 4px;
 }
 
+.bottom-nav {
+  display: none;
+}
+
 .nav-btn {
   border: none;
   background: transparent;
@@ -203,10 +207,6 @@ button {
 
 .sync-dot.offline { background: var(--warning); }
 .sync-dot.error { background: var(--negative); }
-
-.nav-toggle {
-  display: none;
-}
 
 /* ---------- Filter bar ---------- */
 
@@ -941,43 +941,43 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
   .brand-logo { height: 20px; }
   #sync-label { display: none; }
   .sync-indicator { gap: 0; }
-  .nav {
+  .nav { display: none; }
+
+  .bottom-nav {
+    display: flex;
     position: fixed;
-    top: var(--nav-h);
     left: 0;
     right: 0;
+    bottom: 0;
+    z-index: 40;
     background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    flex-direction: column;
-    padding: 8px;
-    display: none;
-    z-index: 25;
-    box-shadow: var(--shadow-md);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -4px 16px rgba(20, 20, 25, 0.06);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
   }
-  .nav.open { display: flex; }
-  .nav .nav-btn {
-    text-align: left;
-    width: 100%;
-    color: var(--text-secondary);
-  }
-  .nav .nav-btn:hover { background: var(--surface-hover); color: var(--text); }
-  .nav .nav-btn.active {
-    background: var(--accent-soft);
-    color: var(--brand-navy);
-    box-shadow: none;
-  }
-  .nav-toggle {
+
+  .bottom-nav-btn {
+    flex: 1;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
+    gap: 3px;
+    padding: 6px 2px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 10.5px;
+    font-weight: 600;
     border-radius: var(--radius-sm);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    background: rgba(255, 255, 255, 0.08);
-    color: #fff;
-    cursor: pointer;
   }
+
+  .bottom-nav-btn svg { width: 21px; height: 21px; }
+
+  .bottom-nav-btn.active { color: var(--brand-navy); }
+
+  .app { padding-bottom: 62px; }
+
   .filterbar {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -998,28 +998,42 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
     grid-column: 1 / -1;
     text-align: left;
   }
-  .view { padding: 18px 14px 40px; max-width: 100%; overflow-x: hidden; }
-  .kpi-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .kpi-card.primary { grid-column: span 2; }
-  .kpi-value { font-size: 24px; }
-  .kpi-card.primary .kpi-value { font-size: 28px; }
+  .view { padding: 16px 14px 28px; max-width: 100%; overflow-x: hidden; }
+
+  /* Una tarjeta por fila: en 2 columnas los montos largos no cabían. */
+  .kpi-grid { grid-template-columns: 1fr; gap: 8px; }
+  .kpi-card.primary { grid-column: 1; }
+  .kpi-card { padding: 14px 16px; }
+  .kpi-value {
+    font-size: 22px;
+    overflow-wrap: anywhere;
+  }
+  .kpi-card.primary .kpi-value { font-size: 26px; }
+
   .grid-3 { grid-template-columns: 1fr; }
   .detail-panel { grid-template-columns: repeat(2, 1fr); }
+
   .summary-bar {
-    padding: 14px 16px;
-    gap: 12px 0;
+    padding: 12px 16px;
+    gap: 0;
   }
   .summary-item {
-    flex: 1 1 45%;
+    flex: 1 1 100%;
     border-left: none;
-    padding: 4px 0;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+    flex-direction: row;
+    align-items: baseline;
+    justify-content: space-between;
   }
+  .summary-item .summary-value { font-size: 15px; overflow-wrap: anywhere; text-align: right; }
   .summary-item.total {
     margin-left: 0;
-    flex-basis: 100%;
     padding-top: 10px;
-    border-top: 1px solid var(--border);
+    padding-bottom: 0;
+    border-bottom: none;
   }
+  .summary-item.total .summary-value { font-size: 18px; }
 
   /* ---- Tablas como tarjetas (sin scroll horizontal) ---- */
   .table-wrap {
