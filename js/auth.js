@@ -7,7 +7,7 @@
 // código del navegador y saltársela; para eso está pensado un nivel más
 // fuerte (login real vía el hosting) si algún día se necesita.
 
-import { CONFIG } from "./config.js?v=20260928b";
+import { CONFIG } from "./config.js?v=20260928c";
 
 const STORAGE_KEY = "tymmsa_portal_unlocked_v1";
 
