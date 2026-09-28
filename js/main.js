@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js";
-import { processRawData, monthShortName, monthLongName } from "./processing.js";
-import { ALL, createFilterState, applyFilters } from "./filters.js";
+import { CONFIG } from "./config.js?v=20260928a";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20260928a";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20260928a";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20260928a";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20260928a";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -16,13 +16,13 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js";
-import { generateInsights } from "./insights.js";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js";
-import { renderMonthlyChart } from "./charts.js";
-import { exportInvoicesToExcel } from "./exportExcel.js";
-import { isUnlocked, tryUnlock, lock } from "./auth.js";
-import * as ui from "./ui.js";
+} from "./calculations.js?v=20260928a";
+import { generateInsights } from "./insights.js?v=20260928a";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20260928a";
+import { renderMonthlyChart } from "./charts.js?v=20260928a";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20260928a";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20260928a";
+import * as ui from "./ui.js?v=20260928a";
 
 const state = {
   dataset: null,
