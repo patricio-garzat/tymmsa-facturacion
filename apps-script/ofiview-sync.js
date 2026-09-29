@@ -38,10 +38,20 @@
     return `${dd}/${mm}/${d.getFullYear()}`;
   }
 
-  async function fetchJson(path) {
-    const res = await fetch(path, { credentials: "include" });
-    if (!res.ok) throw new Error("HTTP " + res.status + " en " + path);
-    return res.json();
+  // Usamos el jQuery que ya está cargado en la página (Ofiview corre sobre
+  // jQuery) en vez de fetch() directo: sus peticiones internas agregan
+  // encabezados/config que el servidor exige y que un fetch() manual no
+  // replica, lo que causaba 403 Forbidden aunque la URL fuera idéntica.
+  function fetchJson(path) {
+    return new Promise((resolve, reject) => {
+      jQuery.ajax({
+        url: path,
+        method: "GET",
+        dataType: "json",
+        success: resolve,
+        error: (xhr) => reject(new Error("HTTP " + xhr.status + " en " + path)),
+      });
+    });
   }
 
   function sleep(ms) {
