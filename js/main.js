@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20260928f";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20260928f";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20260928f";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20260928f";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20260928f";
+import { CONFIG } from "./config.js?v=20260928g";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20260928g";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20260928g";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20260928g";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20260928g";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -16,13 +16,13 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20260928f";
-import { generateInsights } from "./insights.js?v=20260928f";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20260928f";
-import { renderMonthlyChart } from "./charts.js?v=20260928f";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20260928f";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20260928f";
-import * as ui from "./ui.js?v=20260928f";
+} from "./calculations.js?v=20260928g";
+import { generateInsights } from "./insights.js?v=20260928g";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20260928g";
+import { renderMonthlyChart } from "./charts.js?v=20260928g";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20260928g";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20260928g";
+import * as ui from "./ui.js?v=20260928g";
 
 const state = {
   dataset: null,

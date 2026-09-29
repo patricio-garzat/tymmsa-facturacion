@@ -7,7 +7,7 @@
 // Llamada directa desde el navegador: el API de Banxico responde con
 // encabezados CORS habilitados, así que no hace falta pasar por el backend.
 
-import { CONFIG } from "./config.js?v=20260928f";
+import { CONFIG } from "./config.js?v=20260928g";
 
 const EMPTY_RESULT = { enabled: false, rates: {}, serieTitulo: null, error: null };
 const FX_CACHE_KEY = "tymmsa_fx_cache_v1";

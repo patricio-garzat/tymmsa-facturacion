@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20260928f";
-import { monthShortName, monthLongName } from "./processing.js?v=20260928f";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20260928f";
+import { ALL } from "./filters.js?v=20260928g";
+import { monthShortName, monthLongName } from "./processing.js?v=20260928g";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20260928g";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -280,25 +280,22 @@ function ofiviewDetailBlock(entry) {
   if (entry.error) {
     return `<div class="ofiview-detail">${header}<div class="text-muted">No se pudo conectar con Ofiview.</div></div>`;
   }
-  if (entry.sessionExpired) {
-    return `<div class="ofiview-detail">${header}<div class="text-muted">La sesión de Ofiview expiró. Hay que renovar la cookie en Apps Script.</div></div>`;
-  }
   if (!entry.found) {
-    return `<div class="ofiview-detail">${header}<div class="text-muted">No se encontró esta factura en Ofiview.</div></div>`;
+    return `<div class="ofiview-detail">${header}<div class="text-muted">No se ha sincronizado esta factura desde Ofiview todavía.</div></div>`;
   }
 
   const comentarios = entry.comentarios
     ? `<div class="ofiview-comments">${escapeHtml(entry.comentarios)}</div>`
     : `<div class="text-muted">Sin comentarios.</div>`;
 
-  const articulos = (entry.articulos || [])
-    .map((a) => `<li>${escapeHtml(a.producto || "")}${a.cantidad ? ` · x${a.cantidad}` : ""}</li>`)
-    .join("");
+  const descripcion = entry.descripcion
+    ? escapeHtml(entry.descripcion)
+    : `<span class="text-muted">Sin artículos.</span>`;
 
   return `
     <div class="ofiview-detail">
       ${header}
-      <div><div class="dl-label">Descripción</div>${articulos ? `<ul class="ofiview-items">${articulos}</ul>` : `<span class="text-muted">Sin artículos.</span>`}</div>
+      <div><div class="dl-label">Descripción</div>${descripcion}</div>
       <div><div class="dl-label">Comentarios</div>${comentarios}</div>
     </div>
   `;

@@ -849,11 +849,6 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
   white-space: pre-wrap;
 }
 
-.ofiview-items {
-  margin: 0;
-  padding-left: 18px;
-}
-
 /* ---------- Footer ---------- */
 
 .footer-note {
