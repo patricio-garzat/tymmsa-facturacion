@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/styles.css?v=20261001d" />
+<link rel="stylesheet" href="css/styles.css?v=20261001e" />
 </head>
 <body>
 
@@ -214,6 +214,16 @@
           <div class="chart-title">Ranking de clientes</div>
           <span class="text-muted" id="clientes-subtitle" style="font-size:12.5px;"></span>
         </div>
+        <div class="activity-settings">
+          <label>
+            <span class="badge due-soon"><span class="badge-dot"></span>Seguimiento</span>
+            tras <input type="number" id="activity-seguimiento-months" class="activity-input" min="1" max="24" step="1" /> meses
+          </label>
+          <label>
+            <span class="badge overdue"><span class="badge-dot"></span>Inactivo</span>
+            tras <input type="number" id="activity-inactivo-months" class="activity-input" min="1" max="36" step="1" /> meses
+          </label>
+        </div>
         <div class="table-wrap" style="border:none;">
           <table id="table-clientes" class="card-table">
             <thead>
@@ -253,6 +263,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v=20261001d"></script>
+<script type="module" src="js/main.js?v=20261001e"></script>
 </body>
 </html>

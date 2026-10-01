@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20261001d";
-import { monthShortName, monthLongName } from "./processing.js?v=20261001d";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261001d";
+import { ALL } from "./filters.js?v=20261001e";
+import { monthShortName, monthLongName } from "./processing.js?v=20261001e";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261001e";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -416,6 +416,43 @@ export function setExportButtonState(disabled, label) {
 
 /* ---------------- Clientes tab ---------------- */
 
+const ACTIVITY_THRESHOLDS_KEY = "tymmsa_client_activity_thresholds";
+const DEFAULT_ACTIVITY_THRESHOLDS = { seguimientoMonths: 2, inactivoMonths: 4 };
+
+export function getClientActivityThresholds() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(ACTIVITY_THRESHOLDS_KEY) || "null");
+    if (saved && Number.isFinite(saved.seguimientoMonths) && Number.isFinite(saved.inactivoMonths)) {
+      return saved;
+    }
+  } catch (e) {}
+  return { ...DEFAULT_ACTIVITY_THRESHOLDS };
+}
+
+export function wireClientActivitySettings(onChange) {
+  const seguimientoInput = $("#activity-seguimiento-months");
+  const inactivoInput = $("#activity-inactivo-months");
+  if (!seguimientoInput || !inactivoInput) return;
+
+  const { seguimientoMonths, inactivoMonths } = getClientActivityThresholds();
+  seguimientoInput.value = seguimientoMonths;
+  inactivoInput.value = inactivoMonths;
+
+  const handleChange = () => {
+    const seguimiento = Math.max(1, Math.round(Number(seguimientoInput.value)) || 1);
+    const inactivo = Math.max(seguimiento, Math.round(Number(inactivoInput.value)) || seguimiento);
+    seguimientoInput.value = seguimiento;
+    inactivoInput.value = inactivo;
+    try {
+      localStorage.setItem(ACTIVITY_THRESHOLDS_KEY, JSON.stringify({ seguimientoMonths: seguimiento, inactivoMonths: inactivo }));
+    } catch (e) {}
+    onChange({ seguimientoMonths: seguimiento, inactivoMonths: inactivo });
+  };
+
+  seguimientoInput.addEventListener("change", handleChange);
+  inactivoInput.addEventListener("change", handleChange);
+}
+
 export function renderClientesTable(ranking, selectedClient, onSelect) {
   const tbody = $("#table-clientes tbody");
   if (!ranking.length) {
@@ -427,7 +464,7 @@ export function renderClientesTable(ranking, selectedClient, onSelect) {
   const enSeguimiento = ranking.filter((c) => c.activity && c.activity.status !== "activo").length;
   $("#clientes-subtitle").textContent =
     `${ranking.length} cliente${ranking.length === 1 ? "" : "s"} con facturación` +
-    (enSeguimiento ? ` · ${enSeguimiento} sin facturar en su ritmo normal` : "");
+    (enSeguimiento ? ` · ${enSeguimiento} sin facturar hace tiempo` : "");
 
   const maxVal = Math.max(...ranking.map((c) => c.mxnEquivalente));
 

@@ -400,6 +400,43 @@ button {
   flex-wrap: wrap;
 }
 
+.activity-settings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 24px;
+  align-items: center;
+  margin: -2px 0 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.activity-settings label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.activity-input {
+  width: 46px;
+  border: 1px solid var(--border);
+  background: var(--control-bg);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 3px 6px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: center;
+}
+
+.activity-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
 /* ---------- KPI cards ---------- */
 
 .kpi-grid {

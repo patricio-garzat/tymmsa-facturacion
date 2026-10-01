@@ -3,7 +3,7 @@
 // filtradas), producir los números que la UI necesita. Funciones puras,
 // sin acceso a DOM ni a red.
 
-import { ALL, applyFilters, applyFiltersIgnoringMonth } from "./filters.js?v=20261001d";
+import { ALL, applyFilters, applyFiltersIgnoringMonth } from "./filters.js?v=20261001e";
 
 export function sumBy(invoices, field) {
   return invoices.reduce((acc, inv) => acc + (Number(inv[field]) || 0), 0);
@@ -138,20 +138,25 @@ export function computeMonthlySeries(dataset, year, filters) {
 }
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
-const MIN_DAYS_FOR_ALERT = 14;
+
+export const DEFAULT_ACTIVITY_THRESHOLDS = { seguimientoMonths: 2, inactivoMonths: 4 };
 
 /**
- * Actividad por cliente: cuándo fue su última factura y qué tan "fuera de
- * lo normal" es ese silencio para ESE cliente en particular — no contra un
- * número fijo igual para todos, sino contra su propio ritmo histórico de
- * facturación (promedio de días entre una factura y la siguiente).
+ * Actividad por cliente: cuándo fue su última factura y, según los
+ * umbrales en meses que el usuario defina, si eso cuenta como Activo,
+ * Seguimiento o Inactivo. Los umbrales son iguales para todos los
+ * clientes (no se ajustan por el ritmo propio de cada uno) — el usuario
+ * decide directamente a partir de cuántos meses quiere ver cada estado.
  *
  * Siempre se calcula sobre el historial COMPLETO (todas las facturas que
  * existan, sin importar los filtros de Año/Mes/Moneda activos en el
  * portal), porque la pregunta que responde — "¿sigue activo este
  * cliente?" — no depende de qué período esté viendo el usuario ahora.
  */
-export function computeClientActivity(invoices, today = new Date()) {
+export function computeClientActivity(invoices, thresholds = DEFAULT_ACTIVITY_THRESHOLDS, today = new Date()) {
+  const seguimientoDays = (thresholds.seguimientoMonths ?? DEFAULT_ACTIVITY_THRESHOLDS.seguimientoMonths) * 30;
+  const inactivoDays = (thresholds.inactivoMonths ?? DEFAULT_ACTIVITY_THRESHOLDS.inactivoMonths) * 30;
+
   const byClient = new Map();
 
   invoices.forEach((inv) => {
@@ -167,33 +172,11 @@ export function computeClientActivity(invoices, today = new Date()) {
     const ultimaFactura = sorted[sorted.length - 1];
     const diasSinFacturar = Math.floor((today - ultimaFactura) / MS_PER_DAY);
 
-    let avgGapDays = null;
-    if (sorted.length >= 2) {
-      const gaps = [];
-      for (let i = 1; i < sorted.length; i++) {
-        gaps.push((sorted[i] - sorted[i - 1]) / MS_PER_DAY);
-      }
-      avgGapDays = gaps.reduce((a, b) => a + b, 0) / gaps.length;
-    }
-
-    // Piso mínimo: con un ritmo muy frecuente (facturan casi a diario),
-    // comparar por proporción marcaría "atención" con sólo 2-3 días de
-    // silencio, que no significa nada en términos de negocio.
     let status = "activo";
-    if (diasSinFacturar >= MIN_DAYS_FOR_ALERT) {
-      if (avgGapDays && avgGapDays > 0) {
-        const ratio = diasSinFacturar / avgGapDays;
-        if (ratio >= 3) status = "critico";
-        else if (ratio >= 1.5) status = "atencion";
-      } else {
-        // Sólo una factura en todo su historial: no hay ritmo propio que
-        // comparar, así que se usa un umbral fijo razonable.
-        if (diasSinFacturar >= 180) status = "critico";
-        else if (diasSinFacturar >= 90) status = "atencion";
-      }
-    }
+    if (diasSinFacturar >= inactivoDays) status = "critico";
+    else if (diasSinFacturar >= seguimientoDays) status = "atencion";
 
-    activity.set(cliente, { ultimaFactura, diasSinFacturar, avgGapDays, status });
+    activity.set(cliente, { ultimaFactura, diasSinFacturar, status });
   });
 
   return activity;

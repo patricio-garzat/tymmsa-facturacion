@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20261001d";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001d";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001d";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001d";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001d";
+import { CONFIG } from "./config.js?v=20261001e";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001e";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001e";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001e";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001e";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -17,13 +17,13 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20261001d";
-import { generateInsights } from "./insights.js?v=20261001d";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001d";
-import { renderMonthlyChart } from "./charts.js?v=20261001d";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001d";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001d";
-import * as ui from "./ui.js?v=20261001d";
+} from "./calculations.js?v=20261001e";
+import { generateInsights } from "./insights.js?v=20261001e";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001e";
+import { renderMonthlyChart } from "./charts.js?v=20261001e";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001e";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001e";
+import * as ui from "./ui.js?v=20261001e";
 
 const state = {
   dataset: null,
@@ -59,6 +59,7 @@ async function boot() {
     state.selectedClient = null;
     renderClientesTab();
   });
+  ui.wireClientActivitySettings(() => renderClientesTab());
 
   // Apps Script puede tardar varios segundos "en frío". Si ya tenemos algo
   // guardado de una visita anterior, lo pintamos de inmediato (sin esperar
@@ -307,10 +308,11 @@ function renderClientesTab() {
   const periodInvoices = applyFilters(dataset.invoices, filters);
   const ranking = computeClientRanking(periodInvoices);
 
-  // La actividad (última factura, ritmo normal) se calcula sobre TODO el
-  // historial, no sólo el período filtrado: la pregunta "¿sigue activo?"
-  // no depende de qué Año/Mes esté viendo el usuario en este momento.
-  const activity = computeClientActivity(dataset.invoices);
+  // La actividad (última factura) se calcula sobre TODO el historial, no
+  // sólo el período filtrado: la pregunta "¿sigue activo?" no depende de
+  // qué Año/Mes esté viendo el usuario en este momento. Los umbrales en
+  // meses los define el usuario (controles arriba de la tabla).
+  const activity = computeClientActivity(dataset.invoices, ui.getClientActivityThresholds());
   const rankingWithActivity = ranking.map((c) => ({ ...c, activity: activity.get(c.cliente) || null }));
 
   ui.renderClientesTable(rankingWithActivity, selectedClient, (cliente) => {
