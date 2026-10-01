@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20261001a";
-import { monthShortName, monthLongName } from "./processing.js?v=20261001a";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20261001a";
+import { ALL } from "./filters.js?v=20261001b";
+import { monthShortName, monthLongName } from "./processing.js?v=20261001b";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20261001b";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -34,6 +34,22 @@ export function wireNav(onNavigate) {
       $(`#view-${view}`).classList.add("active");
       onNavigate(view);
     });
+  });
+}
+
+export function wireThemeToggle() {
+  const btn = $("#theme-toggle");
+  if (!btn) return;
+  btn.addEventListener("click", () => {
+    const current =
+      document.documentElement.getAttribute("data-theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    const next = current === "dark" ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", next);
+    btn.title = next === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro";
+    try {
+      localStorage.setItem("tymmsa_theme", next);
+    } catch (e) {}
   });
 }
 
@@ -271,6 +287,8 @@ export function renderFacturacionSummary(summary) {
   `;
 }
 
+export const FACTURACION_PAGE_SIZE = 10;
+
 export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId }, onRowClick) {
   $("#fac-count").textContent = `${formatNumber(invoices.length)} factura${invoices.length === 1 ? "" : "s"}`;
 
@@ -286,9 +304,10 @@ export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId 
   }
 
   tbody.innerHTML = invoices
-    .map((inv) => {
+    .map((inv, idx) => {
+      const page = Math.floor(idx / FACTURACION_PAGE_SIZE) + 1;
       const rows = [`
-        <tr class="clickable" data-id="${escapeAttr(inv.factura)}">
+        <tr class="clickable" data-id="${escapeAttr(inv.factura)}" data-page="${page}">
           <td class="mono">${escapeHtml(inv.factura)}</td>
           <td>${escapeHtml(inv.cliente)}</td>
           <td data-label="Fecha">${formatDate(inv.fecha)}</td>
@@ -300,7 +319,7 @@ export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId 
 
       if (expandedId === inv.factura) {
         rows.push(`
-          <tr>
+          <tr data-page="${page}">
             <td colspan="7" style="padding:0 16px 14px;">
               <div class="detail-panel">
                 <div class="only-mobile-detail"><div class="dl-label">Fecha</div>${formatDate(inv.fecha)}</div>
@@ -328,6 +347,26 @@ export function renderFacturacionTable(invoices, { sortKey, sortDir, expandedId 
   $$("#table-facturas tbody tr.clickable").forEach((tr) => {
     tr.addEventListener("click", () => onRowClick(tr.dataset.id));
   });
+}
+
+export function applyFacturacionPage(page) {
+  $$("#table-facturas tbody tr[data-page]").forEach((tr) => {
+    tr.style.display = Number(tr.dataset.page) === page ? "" : "none";
+  });
+}
+
+export function renderFacturacionPagination(page, totalPages) {
+  const info = $("#fac-page-info");
+  if (info) info.textContent = `Página ${page} de ${totalPages}`;
+  const prev = $("#fac-prev");
+  const next = $("#fac-next");
+  if (prev) prev.disabled = page <= 1;
+  if (next) next.disabled = page >= totalPages;
+}
+
+export function wireFacturacionPagination(onPrev, onNext) {
+  $("#fac-prev").addEventListener("click", onPrev);
+  $("#fac-next").addEventListener("click", onNext);
 }
 
 export function wireFacturacionControls(onSearch, onSort) {

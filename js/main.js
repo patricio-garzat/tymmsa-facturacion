@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20261001a";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001a";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001a";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001a";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001a";
+import { CONFIG } from "./config.js?v=20261001b";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001b";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001b";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001b";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001b";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -16,20 +16,20 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20261001a";
-import { generateInsights } from "./insights.js?v=20261001a";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001a";
-import { renderMonthlyChart } from "./charts.js?v=20261001a";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001a";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001a";
-import * as ui from "./ui.js?v=20261001a";
+} from "./calculations.js?v=20261001b";
+import { generateInsights } from "./insights.js?v=20261001b";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001b";
+import { renderMonthlyChart } from "./charts.js?v=20261001b";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001b";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001b";
+import * as ui from "./ui.js?v=20261001b";
 
 const state = {
   dataset: null,
   filters: createFilterState(),
   compareYear: null,
   selectedClient: null,
-  facturacion: { search: "", sortKey: "factura", sortDir: "asc", expandedId: null },
+  facturacion: { search: "", sortKey: "factura", sortDir: "asc", expandedId: null, page: 1 },
 };
 
 // Última tabla renderizada en Facturación, para que exportar/imprimir usen
@@ -48,10 +48,12 @@ function describeFilters(filters, search) {
 
 async function boot() {
   ui.wireNav(() => {});
+  ui.wireThemeToggle();
   ui.wireFilters(onFiltersChange);
   ui.wireCompareYear(onCompareYearChange);
   ui.wireFacturacionControls(onFacturacionSearch, onFacturacionSort);
   ui.wireFacturacionActions(onFacturacionExport, onFacturacionPrint);
+  ui.wireFacturacionPagination(onFacturacionPrevPage, onFacturacionNextPage);
   ui.wireClientDetailClose(() => {
     state.selectedClient = null;
     renderClientesTab();
@@ -218,10 +220,28 @@ function renderFacturacionTab() {
   ui.renderPrintHeader(filterLabel, invoices.length);
   lastFacturacionView = { invoices, summary, filterLabel };
 
+  const totalPages = Math.max(1, Math.ceil(invoices.length / ui.FACTURACION_PAGE_SIZE));
+  if (facturacion.page > totalPages) facturacion.page = totalPages;
+  if (facturacion.page < 1) facturacion.page = 1;
+
   ui.renderFacturacionTable(invoices, facturacion, (id) => {
     facturacion.expandedId = facturacion.expandedId === id ? null : id;
     renderFacturacionTab();
   });
+  ui.applyFacturacionPage(facturacion.page);
+  ui.renderFacturacionPagination(facturacion.page, totalPages);
+}
+
+function onFacturacionPrevPage() {
+  if (state.facturacion.page > 1) {
+    state.facturacion.page -= 1;
+    renderFacturacionTab();
+  }
+}
+
+function onFacturacionNextPage() {
+  state.facturacion.page += 1;
+  renderFacturacionTab();
 }
 
 async function onFacturacionExport() {
@@ -263,6 +283,7 @@ function sortInvoices(invoices, key, dir) {
 
 function onFacturacionSearch(value) {
   state.facturacion.search = value;
+  state.facturacion.page = 1;
   renderFacturacionTab();
 }
 
@@ -274,6 +295,7 @@ function onFacturacionSort(key) {
     f.sortKey = key;
     f.sortDir = key === "fecha" || key === "vencimiento" || key === "mxnEquivalente" ? "desc" : "asc";
   }
+  f.page = 1;
   renderFacturacionTab();
 }
 
@@ -336,6 +358,7 @@ function renderAnalisisTab() {
 function onFiltersChange(newFilters) {
   state.filters = newFilters;
   state.selectedClient = null;
+  state.facturacion.page = 1;
   ui.syncFilterInputs(state.filters);
   renderAll();
 }

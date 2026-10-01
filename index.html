@@ -1,10 +1,20 @@
 <!DOCTYPE html>
-<html lang="es-MX" data-theme="light">
+<html lang="es-MX">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <title>TYMMSA · Facturación</title>
 <meta name="description" content="Portal privado de facturación y análisis de TYMMSA." />
+<script>
+  (function () {
+    try {
+      var saved = localStorage.getItem("tymmsa_theme");
+      if (saved === "light" || saved === "dark") {
+        document.documentElement.setAttribute("data-theme", saved);
+      }
+    } catch (e) {}
+  })();
+</script>
 
 <link rel="manifest" href="manifest.json" />
 <meta name="theme-color" content="#0a3266" />
@@ -21,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/styles.css?v=20261001a" />
+<link rel="stylesheet" href="css/styles.css?v=20261001b" />
 </head>
 <body>
 
@@ -58,6 +68,10 @@
         <span class="sync-dot" id="sync-dot"></span>
         <span id="sync-label">Conectando…</span>
       </div>
+      <button class="theme-toggle" id="theme-toggle" title="Cambiar a modo oscuro" aria-label="Cambiar tema">
+        <svg class="icon-sun" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="10" r="3.6"/><path d="M10 2.3v2M10 15.7v2M17.7 10h-2M4.3 10h-2M15.4 4.6l-1.4 1.4M6 14l-1.4 1.4M15.4 15.4L14 14M6 6 4.6 4.6"/></svg>
+        <svg class="icon-moon" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M17 11.5A7 7 0 1 1 8.5 3a5.6 5.6 0 0 0 8.5 8.5Z"/></svg>
+      </button>
       <button class="auth-logout" id="auth-logout" title="Cerrar sesión">Cerrar sesión</button>
     </div>
   </header>
@@ -82,24 +96,25 @@
   </nav>
 
   <div class="filterbar">
-    <div class="filter-field">
-      <label for="f-anio">Año</label>
-      <select id="f-anio"></select>
+    <div class="filterbar-controls">
+      <div class="filter-field">
+        <label for="f-anio">Año</label>
+        <select id="f-anio"></select>
+      </div>
+      <div class="filter-field">
+        <label for="f-mes">Mes</label>
+        <select id="f-mes"></select>
+      </div>
+      <div class="filter-field">
+        <label for="f-cliente">Cliente</label>
+        <select id="f-cliente"></select>
+      </div>
+      <div class="filter-field">
+        <label for="f-moneda">Moneda</label>
+        <select id="f-moneda"></select>
+      </div>
+      <button class="filter-reset" id="f-reset">Limpiar filtros</button>
     </div>
-    <div class="filter-field">
-      <label for="f-mes">Mes</label>
-      <select id="f-mes"></select>
-    </div>
-    <div class="filter-field">
-      <label for="f-cliente">Cliente</label>
-      <select id="f-cliente"></select>
-    </div>
-    <div class="filter-field">
-      <label for="f-moneda">Moneda</label>
-      <select id="f-moneda"></select>
-    </div>
-    <button class="filter-reset" id="f-reset">Limpiar filtros</button>
-    <div class="filter-spacer"></div>
     <div class="as-of" id="as-of"></div>
   </div>
 
@@ -180,6 +195,16 @@
           <tbody></tbody>
         </table>
       </div>
+
+      <div class="pagination no-print" id="fac-pagination">
+        <button class="pagination-btn" id="fac-prev" aria-label="Página anterior">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-5-5 5-5"/></svg>
+        </button>
+        <span class="pagination-info" id="fac-page-info">Página 1 de 1</span>
+        <button class="pagination-btn" id="fac-next" aria-label="Página siguiente">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5l5 5-5 5"/></svg>
+        </button>
+      </div>
     </section>
 
     <!-- CLIENTES -->
@@ -227,6 +252,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v=20261001a"></script>
+<script type="module" src="js/main.js?v=20261001b"></script>
 </body>
 </html>

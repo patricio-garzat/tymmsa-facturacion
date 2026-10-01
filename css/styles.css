@@ -219,19 +219,67 @@ button {
 .sync-dot.offline { background: var(--warning); }
 .sync-dot.error { background: var(--negative); }
 
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.85);
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.theme-toggle:hover {
+  background: rgba(255, 255, 255, 0.16);
+  transform: scale(1.05);
+}
+
+.theme-toggle svg { width: 16px; height: 16px; }
+
+.theme-toggle .icon-moon { display: none; }
+
+:root[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+:root[data-theme="dark"] .theme-toggle .icon-moon { display: inline-block; }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .theme-toggle .icon-sun { display: none; }
+  :root:not([data-theme="light"]) .theme-toggle .icon-moon { display: inline-block; }
+}
+
 /* ---------- Filter bar ---------- */
 
 .filterbar {
   display: flex;
-  align-items: flex-end;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
   padding: 16px 24px;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: var(--nav-h);
   z-index: 20;
+}
+
+.filterbar-controls {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
   flex-wrap: wrap;
+  justify-content: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 10px 18px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+.filterbar-controls:hover {
+  box-shadow: var(--shadow-md);
 }
 
 .filter-field {
@@ -305,12 +353,13 @@ button {
   background: var(--control-bg);
 }
 
-.filter-spacer { flex: 1; }
-
 .as-of {
   font-size: 12px;
   color: var(--text-muted);
-  padding-bottom: 9px;
+  position: absolute;
+  right: 24px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 /* ---------- Main content ---------- */
@@ -509,6 +558,50 @@ button {
 .chart-canvas-wrap {
   position: relative;
   height: 300px;
+}
+
+/* ---------- Pagination ---------- */
+
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 0 4px;
+}
+
+.pagination-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: background-color 0.15s ease, box-shadow 0.15s ease, opacity 0.15s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background: var(--control-bg);
+  box-shadow: var(--shadow-sm);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.pagination-btn svg { width: 16px; height: 16px; }
+
+.pagination-info {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  min-width: 110px;
+  text-align: center;
 }
 
 /* ---------- Tables ---------- */
@@ -1027,11 +1120,13 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
     padding: 12px 16px;
     top: var(--nav-h);
   }
+  .filterbar-controls {
+    display: contents;
+  }
   .filter-field { width: 100%; min-width: 0; }
   .filter-field select,
   .filter-field input[type="text"] { width: 100%; min-width: 0; padding: 10px 12px; font-size: 15px; }
   .filter-field label { font-size: 10px; }
-  .filter-spacer { display: none; }
   .filter-reset {
     grid-column: 1 / -1;
     justify-self: start;
@@ -1040,6 +1135,8 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
   .as-of {
     grid-column: 1 / -1;
     text-align: left;
+    position: static;
+    transform: none;
   }
   .view { padding: 16px 14px 28px; max-width: 100%; overflow-x: hidden; }
 
@@ -1255,6 +1352,12 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
   }
 
   .view.active { display: block !important; }
+
+  /* La paginación en pantalla sólo oculta filas con display:none inline;
+     al imprimir se ignora y se muestran todas las facturas filtradas. */
+  #table-facturas tbody tr {
+    display: table-row !important;
+  }
 
   .print-header {
     display: block;
