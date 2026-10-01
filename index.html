@@ -31,7 +31,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/styles.css?v=20261001f" />
+<link rel="stylesheet" href="css/styles.css?v=20261001g" />
 </head>
 <body>
 
@@ -177,6 +177,16 @@
         <button class="btn-primary no-print" id="fac-export" title="Descargar como archivo Excel (.xlsx)">⬇ Exportar Excel</button>
       </div>
 
+      <div class="pagination no-print" id="fac-pagination">
+        <button class="pagination-btn" id="fac-prev" aria-label="Página anterior">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-5-5 5-5"/></svg>
+        </button>
+        <span class="pagination-info" id="fac-page-info">Página 1 de 1</span>
+        <button class="pagination-btn" id="fac-next" aria-label="Página siguiente">
+          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5l5 5-5 5"/></svg>
+        </button>
+      </div>
+
       <div class="print-header" id="print-header"></div>
 
       <div class="table-wrap">
@@ -194,16 +204,6 @@
           </thead>
           <tbody></tbody>
         </table>
-      </div>
-
-      <div class="pagination no-print" id="fac-pagination">
-        <button class="pagination-btn" id="fac-prev" aria-label="Página anterior">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15l-5-5 5-5"/></svg>
-        </button>
-        <span class="pagination-info" id="fac-page-info">Página 1 de 1</span>
-        <button class="pagination-btn" id="fac-next" aria-label="Página siguiente">
-          <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5l5 5-5 5"/></svg>
-        </button>
       </div>
     </section>
 
@@ -263,6 +263,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v=20261001f"></script>
+<script type="module" src="js/main.js?v=20261001g"></script>
 </body>
 </html>
