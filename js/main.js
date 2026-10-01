@@ -2,27 +2,28 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20261001b";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001b";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001b";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001b";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001b";
+import { CONFIG } from "./config.js?v=20261001d";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001d";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001d";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001d";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001d";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
   computeClientRanking,
+  computeClientActivity,
   computeCurrencyMix,
   computeConcentration,
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20261001b";
-import { generateInsights } from "./insights.js?v=20261001b";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001b";
-import { renderMonthlyChart } from "./charts.js?v=20261001b";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001b";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001b";
-import * as ui from "./ui.js?v=20261001b";
+} from "./calculations.js?v=20261001d";
+import { generateInsights } from "./insights.js?v=20261001d";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001d";
+import { renderMonthlyChart } from "./charts.js?v=20261001d";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001d";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001d";
+import * as ui from "./ui.js?v=20261001d";
 
 const state = {
   dataset: null,
@@ -306,7 +307,13 @@ function renderClientesTab() {
   const periodInvoices = applyFilters(dataset.invoices, filters);
   const ranking = computeClientRanking(periodInvoices);
 
-  ui.renderClientesTable(ranking, selectedClient, (cliente) => {
+  // La actividad (última factura, ritmo normal) se calcula sobre TODO el
+  // historial, no sólo el período filtrado: la pregunta "¿sigue activo?"
+  // no depende de qué Año/Mes esté viendo el usuario en este momento.
+  const activity = computeClientActivity(dataset.invoices);
+  const rankingWithActivity = ranking.map((c) => ({ ...c, activity: activity.get(c.cliente) || null }));
+
+  ui.renderClientesTable(rankingWithActivity, selectedClient, (cliente) => {
     state.selectedClient = state.selectedClient === cliente ? null : cliente;
     renderClientesTab();
   });

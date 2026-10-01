@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20261001b";
-import { monthShortName, monthLongName } from "./processing.js?v=20261001b";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate } from "./format.js?v=20261001b";
+import { ALL } from "./filters.js?v=20261001d";
+import { monthShortName, monthLongName } from "./processing.js?v=20261001d";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261001d";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -261,6 +261,24 @@ function montoCell(inv) {
     </div>`;
 }
 
+const ACTIVITY_BADGE = {
+  activo: { cls: "paid", label: "Activo" },
+  atencion: { cls: "due-soon", label: "Seguimiento" },
+  critico: { cls: "overdue", label: "Inactivo" },
+};
+
+function clientActivityCell(activity) {
+  if (!activity) {
+    return `<div class="text-muted">Sin facturas</div>`;
+  }
+  const b = ACTIVITY_BADGE[activity.status] || ACTIVITY_BADGE.activo;
+  return `
+    <div>${formatDate(activity.ultimaFactura)}</div>
+    <div class="text-muted" style="font-size:11.5px; margin:2px 0 4px;">${formatRelativeDays(activity.diasSinFacturar)}</div>
+    <span class="badge ${b.cls}"><span class="badge-dot"></span>${b.label}</span>
+  `;
+}
+
 export function renderFacturacionSummary(summary) {
   const el = $("#fac-summary");
   el.innerHTML = `
@@ -401,11 +419,15 @@ export function setExportButtonState(disabled, label) {
 export function renderClientesTable(ranking, selectedClient, onSelect) {
   const tbody = $("#table-clientes tbody");
   if (!ranking.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="empty-state">Sin datos para este período.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-state">Sin datos para este período.</td></tr>`;
     $("#clientes-subtitle").textContent = "";
     return;
   }
-  $("#clientes-subtitle").textContent = `${ranking.length} cliente${ranking.length === 1 ? "" : "s"} con facturación`;
+
+  const enSeguimiento = ranking.filter((c) => c.activity && c.activity.status !== "activo").length;
+  $("#clientes-subtitle").textContent =
+    `${ranking.length} cliente${ranking.length === 1 ? "" : "s"} con facturación` +
+    (enSeguimiento ? ` · ${enSeguimiento} sin facturar en su ritmo normal` : "");
 
   const maxVal = Math.max(...ranking.map((c) => c.mxnEquivalente));
 
@@ -414,6 +436,7 @@ export function renderClientesTable(ranking, selectedClient, onSelect) {
       (c) => `
       <tr class="clickable client-row ${c.cliente === selectedClient ? "selected" : ""}" data-cliente="${escapeAttr(c.cliente)}">
         <td>${escapeHtml(c.cliente)}</td>
+        <td data-label="Última factura">${clientActivityCell(c.activity)}</td>
         <td class="num mono" data-label="Facturas">${formatNumber(c.facturas)}</td>
         <td class="num mono" data-label="Facturación">${formatMoney(c.mxnEquivalente)}</td>
         <td data-label="% del total">

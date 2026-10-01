@@ -51,3 +51,14 @@ export function formatRate(value) {
   if (value === null || value === undefined || isNaN(value)) return "—";
   return value.toFixed(4);
 }
+
+export function formatRelativeDays(days) {
+  if (days === null || days === undefined || isNaN(days)) return "—";
+  if (days <= 0) return "Hoy";
+  if (days === 1) return "Hace 1 día";
+  if (days < 30) return `Hace ${days} días`;
+  if (days < 60) return "Hace 1 mes";
+  if (days < 365) return `Hace ${Math.round(days / 30)} meses`;
+  const years = Math.round(days / 365);
+  return `Hace ${years} año${years === 1 ? "" : "s"}`;
+}
