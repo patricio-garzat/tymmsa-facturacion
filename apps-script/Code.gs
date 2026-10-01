@@ -21,45 +21,18 @@
  * El tipo de cambio histórico (Banxico) se trae directamente desde el
  * portal (ver js/fxService.js) porque el API de Banxico acepta llamadas
  * de navegador (CORS); este script no necesita tocarlo.
- *
- * DETALLE DE FACTURAS DESDE OFIVIEW (ERP):
- * El portal puede mostrar, junto a cada factura, la descripción del
- * artículo y los comentarios que existen en Ofiview (erp.ofiview.com).
- *
- * Ofiview ata cada sesión a la IP desde donde se inició — ni un login
- * automático ni reusar tu cookie desde un servidor funcionan, porque
- * Google (o cualquier backend) siempre tiene una IP distinta a la tuya
- * y Ofiview lo rechaza. Por eso esto NO es una conexión en vivo: es una
- * sincronización que TÚ corres manualmente, desde tu propia computadora,
- * cada cierto tiempo (por ejemplo una vez a la semana). Así:
- * 1. Inicia sesión normal en https://erp.ofiview.com en tu navegador.
- * 2. Abre la consola de JavaScript (DevTools) en esa misma pestaña.
- * 3. Pega el contenido de apps-script/ofiview-sync.js y presiona Enter.
- * 4. Ese script lee tus facturas recientes DESDE tu propia sesión (por
- *    eso sí funciona) y se las manda a este Apps Script por HTTP POST.
- * Este backend solo recibe y guarda esos datos en una pestaña nueva del
- * Sheet llamada OFIVIEW_DETALLE; nunca se conecta a Ofiview por su cuenta.
  */
 
 var ACCESS_TOKEN = 'f1b0cxmucl1s7CLbdnaq0ysJ62pclPsT';
 
 var SHEET_REGISTRO = 'REGISTRO';
 var SHEET_CATALOGOS = 'CATALOGOS';
-var SHEET_OFIVIEW = 'OFIVIEW_DETALLE';
 
 function doGet(e) {
   try {
     var token = e && e.parameter ? e.parameter.token : null;
     if (token !== ACCESS_TOKEN) {
       return jsonResponse({ error: 'unauthorized' }, 401);
-    }
-
-    var action = e.parameter.action || 'sheet';
-
-    if (action === 'ofiview') {
-      var factura = String(e.parameter.factura || '').trim();
-      if (!factura) return jsonResponse({ error: 'factura requerida' }, 400);
-      return jsonResponse(getOfiviewDetailFromSheet(factura), 200);
     }
 
     var ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -73,84 +46,6 @@ function doGet(e) {
   } catch (err) {
     return jsonResponse({ error: String(err) }, 500);
   }
-}
-
-function doPost(e) {
-  try {
-    var body = JSON.parse(e.postData.contents);
-    if (body.token !== ACCESS_TOKEN) {
-      return jsonResponse({ error: 'unauthorized' }, 401);
-    }
-
-    if (body.action === 'ofiview_sync') {
-      var count = saveOfiviewRecords(body.records || []);
-      return jsonResponse({ ok: true, count: count }, 200);
-    }
-
-    return jsonResponse({ error: 'acción no reconocida' }, 400);
-  } catch (err) {
-    return jsonResponse({ error: String(err) }, 500);
-  }
-}
-
-/* ---------------- Ofiview (ERP) — sincronizado a mano ---------------- */
-
-function saveOfiviewRecords(records) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_OFIVIEW);
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_OFIVIEW);
-    sheet.getRange(1, 1, 1, 4).setValues([['Factura', 'Comentarios', 'Descripcion', 'ActualizadoEn']]);
-  }
-
-  var lastRow = sheet.getLastRow();
-  var existingRowByFactura = {};
-  if (lastRow > 1) {
-    var current = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
-    for (var i = 0; i < current.length; i++) {
-      if (current[i][0]) existingRowByFactura[String(current[i][0])] = i + 2;
-    }
-  }
-
-  var now = new Date().toISOString();
-  records.forEach(function (r) {
-    var descripcion = (r.articulos || [])
-      .map(function (a) { return a.producto + (a.cantidad ? ' x' + a.cantidad : ''); })
-      .join(' | ');
-    var rowValues = [r.factura, r.comentarios || '', descripcion, now];
-    var rowIndex = existingRowByFactura[String(r.factura)];
-    if (rowIndex) {
-      sheet.getRange(rowIndex, 1, 1, 4).setValues([rowValues]);
-    } else {
-      sheet.appendRow(rowValues);
-      existingRowByFactura[String(r.factura)] = sheet.getLastRow();
-    }
-  });
-
-  return records.length;
-}
-
-function getOfiviewDetailFromSheet(factura) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var sheet = ss.getSheetByName(SHEET_OFIVIEW);
-  if (!sheet) return { found: false };
-
-  var lastRow = sheet.getLastRow();
-  if (lastRow < 2) return { found: false };
-
-  var data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
-  for (var i = 0; i < data.length; i++) {
-    if (String(data[i][0]) === factura) {
-      return {
-        found: true,
-        factura: factura,
-        comentarios: data[i][1] || '',
-        descripcion: data[i][2] || '',
-        actualizadoEn: data[i][3] ? String(data[i][3]) : null
-      };
-    }
-  }
-  return { found: false };
 }
 
 function readInvoices(ss) {

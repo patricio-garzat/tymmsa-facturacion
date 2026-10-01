@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20260928g";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20260928g";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20260928g";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20260928g";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20260928g";
+import { CONFIG } from "./config.js?v=20261001a";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001a";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001a";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001a";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001a";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -16,20 +16,20 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20260928g";
-import { generateInsights } from "./insights.js?v=20260928g";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20260928g";
-import { renderMonthlyChart } from "./charts.js?v=20260928g";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20260928g";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20260928g";
-import * as ui from "./ui.js?v=20260928g";
+} from "./calculations.js?v=20261001a";
+import { generateInsights } from "./insights.js?v=20261001a";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001a";
+import { renderMonthlyChart } from "./charts.js?v=20261001a";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001a";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001a";
+import * as ui from "./ui.js?v=20261001a";
 
 const state = {
   dataset: null,
   filters: createFilterState(),
   compareYear: null,
   selectedClient: null,
-  facturacion: { search: "", sortKey: "factura", sortDir: "asc", expandedId: null, ofiviewCache: {} },
+  facturacion: { search: "", sortKey: "factura", sortDir: "asc", expandedId: null },
 };
 
 // Última tabla renderizada en Facturación, para que exportar/imprimir usen
@@ -221,27 +221,7 @@ function renderFacturacionTab() {
   ui.renderFacturacionTable(invoices, facturacion, (id) => {
     facturacion.expandedId = facturacion.expandedId === id ? null : id;
     renderFacturacionTab();
-    if (facturacion.expandedId && !facturacion.ofiviewCache[facturacion.expandedId]) {
-      loadOfiviewDetail(facturacion.expandedId);
-    }
   });
-}
-
-async function loadOfiviewDetail(factura) {
-  const { facturacion } = state;
-  facturacion.ofiviewCache[factura] = { loading: true };
-  renderFacturacionTab();
-
-  try {
-    const url = `${CONFIG.APPS_SCRIPT_URL}?token=${encodeURIComponent(CONFIG.ACCESS_TOKEN)}&action=ofiview&factura=${encodeURIComponent(factura)}`;
-    const res = await fetch(url);
-    const data = await res.json();
-    if (data.error) throw new Error(data.error);
-    facturacion.ofiviewCache[factura] = { loading: false, ...data };
-  } catch (err) {
-    facturacion.ofiviewCache[factura] = { loading: false, error: true };
-  }
-  renderFacturacionTab();
 }
 
 async function onFacturacionExport() {

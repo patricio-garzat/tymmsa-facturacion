@@ -3,7 +3,7 @@
 // español. No calcula nada nuevo, no accede a datos crudos. Cada insight
 // sólo se agrega si el dato que lo sustenta existe (nada se inventa).
 
-import { ALL, applyFilters, applyFiltersIgnoringMonth } from "./filters.js?v=20260928g";
+import { ALL, applyFilters, applyFiltersIgnoringMonth } from "./filters.js?v=20261001a";
 import {
   computeMonthlySeries,
   computeClientRanking,
@@ -12,9 +12,9 @@ import {
   computeAging,
   computeHeadlineKpis,
   sumBy,
-} from "./calculations.js?v=20260928g";
-import { monthLongName, monthShortName } from "./processing.js?v=20260928g";
-import { formatMoney, formatPct } from "./format.js?v=20260928g";
+} from "./calculations.js?v=20261001a";
+import { monthLongName, monthShortName } from "./processing.js?v=20261001a";
+import { formatMoney, formatPct } from "./format.js?v=20261001a";
 
 export function generateInsights(dataset, filters) {
   const insights = [];
