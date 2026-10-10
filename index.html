@@ -32,7 +32,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;650;700&display=swap" rel="stylesheet" />
-<link rel="stylesheet" href="css/styles.css?v=20261010a" />
+<link rel="stylesheet" href="css/styles.css?v=20261010b" />
 </head>
 <body>
 
@@ -41,7 +41,13 @@
     <img src="assets/tymmsa-icon-navy.svg" alt="" class="auth-logo" />
     <h1 class="auth-title">TYMMSA · Facturación</h1>
     <p class="auth-subtitle">Portal privado. Ingresa la contraseña para continuar.</p>
-    <input type="password" id="auth-password" class="auth-input" placeholder="Contraseña" autocomplete="current-password" autofocus />
+    <div class="auth-field">
+      <input type="password" id="auth-password" class="auth-input" placeholder="Contraseña" autocomplete="current-password" autofocus />
+      <button type="button" class="auth-eye" id="auth-eye" aria-label="Mostrar contraseña" aria-pressed="false">
+        <svg class="eye-open" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>
+        <svg class="eye-closed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9.9 5.2A10.6 10.6 0 0 1 12 5c6.4 0 10 7 10 7a17.6 17.6 0 0 1-3.2 4.2M6.6 6.6A17.5 17.5 0 0 0 2 12s3.6 7 10 7a10 10 0 0 0 5.4-1.6"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="m3 3 18 18"/></svg>
+      </button>
+    </div>
     <button type="submit" class="btn-primary auth-submit">Entrar</button>
     <p class="auth-error" id="auth-error" style="display:none">Contraseña incorrecta. Intenta de nuevo.</p>
   </form>
@@ -277,6 +283,6 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script type="module" src="js/main.js?v=20261010a"></script>
+<script type="module" src="js/main.js?v=20261010b"></script>
 </body>
 </html>

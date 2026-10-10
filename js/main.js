@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20261010a";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261010a";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261010a";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261010a";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261010a";
+import { CONFIG } from "./config.js?v=20261010b";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261010b";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261010b";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261010b";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261010b";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -17,13 +17,13 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20261010a";
-import { generateInsights } from "./insights.js?v=20261010a";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261010a";
-import { renderMonthlyChart } from "./charts.js?v=20261010a";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20261010a";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261010a";
-import * as ui from "./ui.js?v=20261010a";
+} from "./calculations.js?v=20261010b";
+import { generateInsights } from "./insights.js?v=20261010b";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261010b";
+import { renderMonthlyChart } from "./charts.js?v=20261010b";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20261010b";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261010b";
+import * as ui from "./ui.js?v=20261010b";
 
 const state = {
   dataset: null,
@@ -394,6 +394,16 @@ function showAuthGate() {
   loadingScreen.classList.add("hidden");
   gate.style.display = "flex";
   input.focus();
+
+  const eye = document.getElementById("auth-eye");
+  eye.addEventListener("mousedown", (e) => e.preventDefault());
+  eye.addEventListener("click", () => {
+    const show = input.type === "password";
+    input.type = show ? "text" : "password";
+    eye.setAttribute("aria-pressed", String(show));
+    eye.setAttribute("aria-label", show ? "Ocultar contraseña" : "Mostrar contraseña");
+    input.focus();
+  });
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();

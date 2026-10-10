@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20261010a";
-import { monthShortName, monthLongName } from "./processing.js?v=20261010a";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261010a";
+import { ALL } from "./filters.js?v=20261010b";
+import { monthShortName, monthLongName } from "./processing.js?v=20261010b";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261010b";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));

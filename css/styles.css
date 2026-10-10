@@ -1023,10 +1023,40 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
   font-family: inherit;
   text-align: center;
   letter-spacing: 0.05em;
-  margin-bottom: 12px;
+  padding-left: 44px;
+  padding-right: 44px;
 }
 
 .auth-input:focus { outline: none; border-color: var(--brand-navy); }
+
+.auth-field {
+  position: relative;
+  margin-bottom: 12px;
+}
+
+.auth-eye {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.auth-eye:hover { color: var(--text); background: var(--control-bg); }
+.auth-eye svg { width: 18px; height: 18px; }
+.auth-eye .eye-closed { display: none; }
+.auth-eye[aria-pressed="true"] .eye-open { display: none; }
+.auth-eye[aria-pressed="true"] .eye-closed { display: block; }
 
 .auth-submit { width: 100%; justify-content: center; padding: 11px 14px; }
 
