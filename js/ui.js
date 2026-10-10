@@ -3,18 +3,36 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20261001g";
-import { monthShortName, monthLongName } from "./processing.js?v=20261001g";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261001g";
+import { ALL } from "./filters.js?v=20261010a";
+import { monthShortName, monthLongName } from "./processing.js?v=20261010a";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261010a";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
 /* ---------------- Shell / nav ---------------- */
 
+// La secuencia de armado del logo dura ~2.2 s; si los datos llegan antes
+// (p. ej. desde caché) se espera lo que falte para que no se corte a medias.
+const LOADER_MIN_MS = 2300;
+let loaderShownAt = performance.now();
+
+export function beginLoader() {
+  $("#loading-screen").classList.remove("hidden", "leaving");
+  loaderShownAt = performance.now();
+}
+
 export function showApp() {
-  $("#loading-screen").classList.add("hidden");
-  $("#app").style.display = "";
+  const loader = $("#loading-screen");
+  const wait = Math.max(0, LOADER_MIN_MS - (performance.now() - loaderShownAt));
+  setTimeout(() => {
+    $("#app").style.display = "";
+    loader.classList.add("leaving");
+    setTimeout(() => {
+      loader.classList.add("hidden");
+      loader.classList.remove("leaving");
+    }, 450);
+  }, wait);
 }
 
 export function setLoadingText(text) {

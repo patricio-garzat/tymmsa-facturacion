@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20261001g";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261001g";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261001g";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261001g";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261001g";
+import { CONFIG } from "./config.js?v=20261010a";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261010a";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261010a";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261010a";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261010a";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -17,13 +17,13 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20261001g";
-import { generateInsights } from "./insights.js?v=20261001g";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261001g";
-import { renderMonthlyChart } from "./charts.js?v=20261001g";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20261001g";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261001g";
-import * as ui from "./ui.js?v=20261001g";
+} from "./calculations.js?v=20261010a";
+import { generateInsights } from "./insights.js?v=20261010a";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261010a";
+import { renderMonthlyChart } from "./charts.js?v=20261010a";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20261010a";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261010a";
+import * as ui from "./ui.js?v=20261010a";
 
 const state = {
   dataset: null,
@@ -376,7 +376,7 @@ function onFiltersChange(newFilters) {
 
 function startApp() {
   document.getElementById("auth-gate").style.display = "none";
-  document.getElementById("loading-screen").classList.remove("hidden");
+  ui.beginLoader();
   document.getElementById("auth-logout").addEventListener("click", () => {
     lock();
     window.location.reload();

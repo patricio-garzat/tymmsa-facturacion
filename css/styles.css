@@ -1048,31 +1048,115 @@ tbody tr.clickable:hover { background: var(--surface-hover); }
 
 /* ---------- Loading / error states ---------- */
 
+/* Pantalla de carga corporativa: fondo azul marino de la marca; el isotipo
+   se dibuja, se rellena y las letras del logo se arman una por una. */
 .loading-screen {
   position: fixed;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
+  background:
+    radial-gradient(ellipse 70% 55% at 50% 42%, rgba(79, 116, 184, 0.28), transparent 70%),
+    linear-gradient(160deg, #0b1c3d 0%, #152f5d 100%);
   z-index: 100;
-  flex-direction: column;
-  gap: 12px;
+  transition: opacity 0.45s ease;
 }
 
+.loading-screen.leaving { opacity: 0; pointer-events: none; }
 .loading-screen.hidden { display: none; }
 
-.spinner-logo {
-  width: 46px;
-  height: 46px;
-  animation: spin 1.3s linear infinite;
+.ld-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding: 0 24px;
 }
 
-@keyframes spin { to { transform: rotate(360deg); } }
+.ld-logo {
+  width: min(380px, 78vw);
+  height: auto;
+  overflow: visible;
+}
+
+/* Isotipo: primero el contorno se traza, luego se rellena. */
+.ld-icon-stroke {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 9;
+  stroke-linejoin: round;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation:
+    ld-draw 1.15s cubic-bezier(0.65, 0, 0.35, 1) 0.1s forwards,
+    ld-stroke-out 0.5s ease 1.05s forwards;
+}
+
+.ld-icon-fill {
+  fill: #fff;
+  opacity: 0;
+  animation: ld-fill 0.7s ease 0.85s forwards;
+}
+
+/* Letras: aparecen en secuencia, de izquierda a derecha. */
+.ld-letter {
+  fill: #fff;
+  opacity: 0;
+  transform: translateY(70px);
+  transform-box: fill-box;
+  animation: ld-letter 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation-delay: calc(1.25s + var(--i) * 0.09s);
+}
+
+.ld-bar {
+  width: 168px;
+  height: 2px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+  overflow: hidden;
+  opacity: 0;
+  animation: ld-appear 0.5s ease 2s forwards;
+}
+
+.ld-bar span {
+  display: block;
+  width: 40%;
+  height: 100%;
+  background: #fff;
+  border-radius: 2px;
+  animation: ld-slide 1.3s ease-in-out infinite;
+}
 
 .loading-text {
-  font-size: 13.5px;
-  color: var(--text-muted);
+  font-size: 12px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: -12px;
+  text-align: center;
+  opacity: 0;
+  animation: ld-appear 0.5s ease 2s forwards;
+}
+
+@keyframes ld-draw { to { stroke-dashoffset: 0; } }
+@keyframes ld-stroke-out { to { opacity: 0; } }
+@keyframes ld-fill { to { opacity: 1; } }
+@keyframes ld-letter { to { opacity: 1; transform: translateY(0); } }
+@keyframes ld-appear { to { opacity: 1; } }
+@keyframes ld-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(250%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ld-icon-stroke { display: none; }
+  .ld-icon-fill, .ld-letter, .ld-bar, .loading-text {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .ld-bar span { animation: none; width: 100%; }
 }
 
 .banner {
