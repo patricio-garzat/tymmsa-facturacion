@@ -3,9 +3,9 @@
 // reglas de negocio ni hace fetch; sólo lee lo que le pasan y escucha
 // interacción del usuario (delegando la lógica hacia afuera vía callbacks).
 
-import { ALL } from "./filters.js?v=20261010b";
-import { monthShortName, monthLongName } from "./processing.js?v=20261010b";
-import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261010b";
+import { ALL } from "./filters.js?v=20261102d";
+import { monthShortName, monthLongName } from "./processing.js?v=20261102d";
+import { formatMoney, formatMoneyCompact, formatUsd, formatPct, formatDate, formatNumber, formatRate, formatRelativeDays } from "./format.js?v=20261102d";
 
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -412,9 +412,16 @@ export function wireFacturacionControls(onSearch, onSort) {
   });
 }
 
-export function wireFacturacionActions(onExport, onPrint) {
+export function wireFacturacionActions(onExport, onPrint, onPdf) {
   $("#fac-export").addEventListener("click", onExport);
   $("#fac-print").addEventListener("click", onPrint);
+  $("#fac-pdf").addEventListener("click", onPdf);
+}
+
+export function setPdfButtonState(disabled, label) {
+  const btn = $("#fac-pdf");
+  btn.disabled = disabled;
+  btn.textContent = label || "📄 Descargar PDF";
 }
 
 export function renderPrintHeader(filterLabel, count) {

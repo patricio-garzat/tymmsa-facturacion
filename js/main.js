@@ -2,11 +2,11 @@
 // filtros -> cálculos -> visualización. No contiene reglas de negocio ni
 // manipulación de DOM directa (eso vive en calculations.js y ui.js).
 
-import { CONFIG } from "./config.js?v=20261010b";
-import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261010b";
-import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261010b";
-import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261010b";
-import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261010b";
+import { CONFIG } from "./config.js?v=20261102d";
+import { loadInvoiceData, getCachedRaw, setCachedRaw, DATA_SOURCE } from "./dataService.js?v=20261102d";
+import { fetchFixRatesForInvoices, getCachedFx } from "./fxService.js?v=20261102d";
+import { processRawData, monthShortName, monthLongName } from "./processing.js?v=20261102d";
+import { ALL, createFilterState, applyFilters } from "./filters.js?v=20261102d";
 import {
   computeHeadlineKpis,
   computeMonthlySeries,
@@ -17,13 +17,14 @@ import {
   computeAging,
   computeProjection,
   computeFacturacionSummary,
-} from "./calculations.js?v=20261010b";
-import { generateInsights } from "./insights.js?v=20261010b";
-import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261010b";
-import { renderMonthlyChart } from "./charts.js?v=20261010b";
-import { exportInvoicesToExcel } from "./exportExcel.js?v=20261010b";
-import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261010b";
-import * as ui from "./ui.js?v=20261010b";
+} from "./calculations.js?v=20261102d";
+import { generateInsights } from "./insights.js?v=20261102d";
+import { formatMoney, formatMoneyCompact, formatDate } from "./format.js?v=20261102d";
+import { renderMonthlyChart } from "./charts.js?v=20261102d";
+import { exportInvoicesToExcel } from "./exportExcel.js?v=20261102d";
+import { exportFacturacionPdf, preparePdfExport } from "./exportPdf.js?v=20261102d";
+import { isUnlocked, tryUnlock, lock } from "./auth.js?v=20261102d";
+import * as ui from "./ui.js?v=20261102d";
 
 const state = {
   dataset: null,
@@ -48,12 +49,14 @@ function describeFilters(filters, search) {
 }
 
 async function boot() {
-  ui.wireNav(() => {});
+  ui.wireNav((view) => {
+    if (view === "facturacion") preparePdfExport().catch(() => {});
+  });
   ui.wireThemeToggle();
   ui.wireFilters(onFiltersChange);
   ui.wireCompareYear(onCompareYearChange);
   ui.wireFacturacionControls(onFacturacionSearch, onFacturacionSort);
-  ui.wireFacturacionActions(onFacturacionExport, onFacturacionPrint);
+  ui.wireFacturacionActions(onFacturacionExport, onFacturacionPrint, onFacturacionPdf);
   ui.wireFacturacionPagination(onFacturacionPrevPage, onFacturacionNextPage);
   ui.wireClientDetailClose(() => {
     state.selectedClient = null;
@@ -259,6 +262,25 @@ async function onFacturacionExport() {
   ui.setExportButtonState(false);
   if (!ok) {
     alert("No se pudo generar el Excel: no cargó el módulo de exportación (revisa tu conexión a internet e intenta de nuevo).");
+  }
+}
+
+async function onFacturacionPdf() {
+  const { invoices, filterLabel } = lastFacturacionView;
+  if (!invoices.length) {
+    alert("No hay facturas con estos filtros para generar el PDF.");
+    return;
+  }
+  ui.setPdfButtonState(true, "Generando…");
+  let ok = false;
+  try {
+    ok = await exportFacturacionPdf({ invoices, filterLabel });
+  } catch (err) {
+    console.error(err);
+  }
+  ui.setPdfButtonState(false);
+  if (!ok) {
+    alert("No se pudo generar el PDF (revisa tu conexión a internet e intenta de nuevo).");
   }
 }
 
